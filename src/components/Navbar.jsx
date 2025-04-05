@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FaGraduationCap, FaMoon, FaSun, FaBars, FaTimes } from 'react-icons/fa';
 import WalletConnect from './WalletConnect';
@@ -8,6 +8,23 @@ const Navbar = ({ account, onConnect }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
   const { darkMode, toggleDarkMode } = useTheme();
+
+  // Close mobile menu when changing routes
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location.pathname]);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isMenuOpen && !event.target.closest('nav')) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMenuOpen]);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -23,7 +40,7 @@ const Navbar = ({ account, onConnect }) => {
     { path: '/dashboard', label: 'Dashboard' },
     { path: '/create-course', label: 'Create Course' },
     { path: '/about', label: 'About' },
-    { name: 'AI Assignments', path: '/ai-assignment' },
+    { path: '/ai-assignment', label: 'AI Assignments' },
     // { path: '/contact', label: 'Contact' }
   ];
 
@@ -34,24 +51,24 @@ const Navbar = ({ account, onConnect }) => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
             <FaGraduationCap className={`text-2xl ${darkMode ? 'text-blue-400 group-hover:text-blue-300' : 'text-blue-600 group-hover:text-blue-500'} transition-colors duration-200`} />
-            <span className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Mentora</span>
+            <span className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>EduChain</span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-6">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
-                className={`${
+                className={`px-2 py-1 ${
                   isActive(link.path)
                     ? darkMode
                       ? 'text-blue-400 border-b-2 border-blue-400'
                       : 'text-blue-600 border-b-2 border-blue-600'
                     : darkMode
-                    ? 'text-gray-300 hover:text-white'
-                    : 'text-gray-600 hover:text-gray-900'
-                } transition-colors duration-200`}
+                    ? 'text-gray-300 hover:text-white hover:border-b-2 hover:border-gray-300'
+                    : 'text-gray-600 hover:text-gray-900 hover:border-b-2 hover:border-gray-400'
+                } transition-all duration-200`}
               >
                 {link.label}
               </Link>
@@ -79,8 +96,10 @@ const Navbar = ({ account, onConnect }) => {
             ) : (
               <div
                 className={`px-4 py-2 rounded-full ${
-                  darkMode ? 'bg-gray-800' : 'bg-blue-100'
-                } flex items-center transform hover:scale-105 transition-all duration-200`}
+                  darkMode 
+                    ? 'bg-gray-800 hover:bg-gray-700' 
+                    : 'bg-blue-100 hover:bg-blue-200'
+                } flex items-center transform hover:scale-105 transition-all duration-200 cursor-pointer`}
               >
                 <span className={`mr-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Connected:</span>
                 <span className={`font-mono truncate max-w-xs ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
@@ -95,6 +114,7 @@ const Navbar = ({ account, onConnect }) => {
               className={`md:hidden p-2 rounded-md ${
                 darkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'
               } transition-colors duration-200`}
+              aria-label="Toggle menu"
             >
               {isMenuOpen ? (
                 <FaTimes className={`text-xl ${darkMode ? 'text-white' : 'text-gray-900'}`} />
@@ -107,13 +127,12 @@ const Navbar = ({ account, onConnect }) => {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden">
-            <div className={`px-2 pt-2 pb-3 space-y-1 ${darkMode ? 'bg-gray-900/90' : 'bg-white/90'}`}>
+          <div className="md:hidden absolute left-0 right-0 shadow-lg">
+            <div className={`px-2 pt-2 pb-3 space-y-1 ${darkMode ? 'bg-gray-900' : 'bg-white'} border-b ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
               {navLinks.map((link) => (
                 <Link
                   key={link.path}
                   to={link.path}
-                  onClick={() => setIsMenuOpen(false)}
                   className={`${
                     isActive(link.path)
                       ? darkMode
@@ -135,4 +154,4 @@ const Navbar = ({ account, onConnect }) => {
   );
 };
 
-export default Navbar; 
+export default Navbar;
