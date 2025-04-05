@@ -1,82 +1,111 @@
-import { create } from 'ipfs-http-client';
-import { Buffer } from 'buffer';
+import axios from 'axios';
 
-// IPFS configuration
-const projectId = import.meta.env.VITE_INFURA_PROJECT_ID;
-const projectSecret = import.meta.env.VITE_INFURA_PROJECT_SECRET;
-const auth = 'Basic ' + Buffer.from(projectId + ':' + projectSecret).toString('base64');
+const API_BASE_URL = `${import.meta.env.VITE_IPFS_SERVER}/api`
 
 class IPFSService {
-  constructor() {
-    this.client = create({
-      host: 'ipfs.infura.io',
-      port: 5001,
-      protocol: 'https',
-      headers: {
-        authorization: auth,
-      },
-    });
-  }
-
   async uploadFile(file, onProgress) {
     try {
-      const fileBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(fileBuffer);
-      
-      const result = await this.client.add(buffer, {
-        progress: (prog) => {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await axios.post(`${API_BASE_URL}/upload/file`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
           if (onProgress) {
-            onProgress(prog);
+            onProgress(progressEvent.loaded);
           }
         }
       });
-      
-      return result.path; // Return just the hash/CID
+
+      return response.data.hash;
     } catch (error) {
       console.error('Error uploading file to IPFS:', error);
-      throw new Error(`Failed to upload file to IPFS: ${error.message}`);
+      throw new Error(`Failed to upload file to IPFS: ${error.response?.data?.error || error.message}`);
     }
   }
 
   async uploadVideo(file, onProgress) {
-    // Validate video file
-    if (!file.type.startsWith('video/')) {
-      throw new Error('File must be a video');
-    }
+    try {
+      // Validate video file
+      if (!file.type.startsWith('video/')) {
+        throw new Error('File must be a video');
+      }
+      
+      // Check file size (100MB limit)
+      const MAX_SIZE = 100 * 1024 * 1024; // 100MB
+      if (file.size > MAX_SIZE) {
+        throw new Error('Video file size must be less than 100MB');
+      }
 
-    // Check file size (100MB limit)
-    const MAX_SIZE = 100 * 1024 * 1024; // 100MB
-    if (file.size > MAX_SIZE) {
-      throw new Error('Video file size must be less than 100MB');
-    }
+      const formData = new FormData();
+      formData.append('video', file);
 
-    return this.uploadFile(file, onProgress);
+      const response = await axios.post(`${API_BASE_URL}/upload/video`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          if (onProgress) {
+            onProgress(progressEvent.loaded);
+          }
+        }
+      });
+
+      return response.data.hash;
+    } catch (error) {
+      console.error('Error uploading video to IPFS:', error);
+      throw new Error(`Failed to upload video to IPFS: ${error.response?.data?.error || error.message}`);
+    }
   }
 
   async uploadImage(file, onProgress) {
-    // Validate image file
-    if (!file.type.startsWith('image/')) {
-      throw new Error('File must be an image');
-    }
+    try {
+      // Validate image file
+      if (!file.type.startsWith('image/')) {
+        throw new Error('File must be an image');
+      }
+      
+      // Check file size (10MB limit)
+      const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+      if (file.size > MAX_SIZE) {
+        throw new Error('Image file size must be less than 10MB');
+      }
 
-    // Check file size (10MB limit)
-    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
-    if (file.size > MAX_SIZE) {
-      throw new Error('Image file size must be less than 10MB');
-    }
+      const formData = new FormData();
+      formData.append('image', file);
 
-    return this.uploadFile(file, onProgress);
+      const response = await axios.post(`${API_BASE_URL}/upload/image`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          if (onProgress) {
+            onProgress(progressEvent.loaded);
+          }
+        }
+      });
+
+      return response.data.hash;
+    } catch (error) {
+      console.error('Error uploading image to IPFS:', error);
+      throw new Error(`Failed to upload image to IPFS: ${error.response?.data?.error || error.message}`);
+    }
   }
 
   async uploadJSON(data) {
     try {
-      const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-      const file = new File([blob], 'data.json');
-      const result = await this.client.add(file);
-      return result.path;
+      const response = await axios.post(`${API_BASE_URL}/upload/json`, data, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      return response.data.hash;
     } catch (error) {
       console.error('Error uploading JSON to IPFS:', error);
-      throw new Error(`Failed to upload JSON to IPFS: ${error.message}`);
+      throw new Error(`Failed to upload JSON to IPFS: ${error.response?.data?.error || error.message}`);
     }
   }
 
@@ -92,14 +121,14 @@ class IPFSService {
 
   async retrieveFile(hash) {
     try {
-      const chunks = [];
-      for await (const chunk of this.client.cat(hash)) {
-        chunks.push(chunk);
-      }
-      return Buffer.concat(chunks);
+      const response = await axios.get(`${API_BASE_URL}/retrieve/${hash}`, {
+        responseType: 'arraybuffer'
+      });
+      
+      return response.data;
     } catch (error) {
       console.error('Error retrieving file from IPFS:', error);
-      throw new Error(`Failed to retrieve file from IPFS: ${error.message}`);
+      throw new Error(`Failed to retrieve file from IPFS: ${error.response?.data?.error || error.message}`);
     }
   }
 }

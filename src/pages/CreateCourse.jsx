@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { FaSpinner, FaUpload, FaPlus, FaTrash } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
 import { useEduChain } from '../hooks/useEduChain';
-import { ethers } from 'ethers';
 import ipfsService from '../utils/ipfsStorage';
 
 const CreateCourse = () => {
