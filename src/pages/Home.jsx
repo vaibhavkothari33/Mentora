@@ -45,7 +45,7 @@ const Home = () => {
   ];
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white' : 'bg-gradient-to-b from-blue-50 via-white to-blue-50 text-gray-900'}`}>
+    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-[#000000]' : 'bg-gradient-to-b from-blue-50 via-white to-blue-50 text-gray-900'}`}>
       <Aurora 
         colorStops={darkMode ? ["#3A29FF", "#FF94B4", "#FF3232"] : ["#60A5FA", "#7C3AED", "#2563EB"]}
         blend={darkMode ? 0.5 : 0.3}
@@ -55,15 +55,15 @@ const Home = () => {
 
       {/* Hero Section with 3D Image */}
       <section className="relative min-h-screen flex items-center justify-center py-20 px-4">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-500/5 dark:to-purple-500/5"></div>
+        <div className="absolute inset-0 bg-[#000000] dark:from-blue-500/5 dark:to-purple-500/5"></div>
         <motion.div 
           initial="hidden"
           animate={isVisible ? "visible" : "hidden"}
           variants={fadeIn}
-          className="max-w-6xl mx-auto relative grid md:grid-cols-2 gap-12 items-center"
+          className="max-w-6xl mx-auto relative grid md:grid-cols-2 gap-8 items-center"
         >
           {/* Left Column - Text Content */}
-          <div className="text-left space-y-8">
+          <div className="text-left space-y-8 -mt-8">
             <motion.h1 
               className={`text-6xl md:text-7xl font-bold leading-tight ${
                 darkMode 
@@ -102,7 +102,7 @@ const Home = () => {
 
             {/* Stats */}
             <motion.div 
-              className="grid grid-cols-3 gap-4 pt-8"
+              className="grid grid-cols-3 gap-4 pt-8 text-white"
               variants={fadeIn}
             >
               {[
@@ -123,7 +123,7 @@ const Home = () => {
 
           {/* Right Column - 3D Visual */}
           <motion.div 
-            className="relative"
+            className="relative mt-8"
             variants={fadeIn}
           >
             <img
@@ -167,10 +167,10 @@ const Home = () => {
                     alt={course.title}
                     className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-gray-1000/60 to-transparent" />
                 </div>
                 <div className="p-6">
-                  <h3 className="text-xl font-bold mb-2">{course.title}</h3>
+                  <h3 className="text-xl text-white font-bold mb-2">{course.title}</h3>
                   <div className="flex items-center justify-between text-sm mb-4">
                     <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
                       <FaUserGraduate className="inline mr-2" />
@@ -206,7 +206,7 @@ const Home = () => {
 
       {/* Learning Process Section */}
       <section className="py-20 px-4 relative">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -217,53 +217,66 @@ const Home = () => {
             How It Works
           </motion.h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               {
                 icon: <FaUserGraduate />,
                 title: "Sign Up",
                 description: "Create your account and connect your wallet",
-                image: "https://images.unsplash.com/photo-1616514197671-15d99ce7a6f8?q=80&w=1000"
+                metric: "5000+ Students",
+                color: "from-[#3A29FF] to-[#6C63FF]"
               },
               {
                 icon: <FaChalkboardTeacher />,
                 title: "Choose Course",
                 description: "Browse and enroll in your preferred course",
-                image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=1000"
+                metric: "50+ Courses",
+                color: "from-[#FF94B4] to-[#FF3232]"
               },
               {
                 icon: <FaGraduationCap />,
                 title: "Learn",
                 description: "Access course content and complete assignments",
-                image: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=1000"
+                metric: "98% Completion",
+                color: "from-[#60A5FA] to-[#7C3AED]"
               },
               {
                 icon: <FaCertificate />,
                 title: "Get Certified",
                 description: "Earn your NFT certificate upon completion",
-                image: "https://images.unsplash.com/photo-1523287562758-66c7fc58967f?q=80&w=1000"
+                metric: "500+ Certificates",
+                color: "from-[#4CAF50] to-[#2E7D32]"
               }
             ].map((step, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                className="text-center"
+                className={`${
+                  darkMode ? 'bg-[#1a1a2e]/40' : 'bg-white/40'
+                } rounded-3xl p-8 shadow-2xl relative overflow-hidden group backdrop-blur-md border border-gray-800/30`}
               >
-                <div className="relative mb-6 mx-auto w-40 h-40 rounded-full overflow-hidden">
-                  <img 
-                    src={step.image}
-                    alt={step.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className={`absolute inset-0 flex items-center justify-center bg-black/50`}>
-                    <div className="text-4xl text-white">{step.icon}</div>
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-300/10 to-gray-600/10 group-hover:opacity-20 opacity-0.1 transition-opacity duration-300 backdrop-blur-sm" />
+                
+                <div className="relative z-10">
+                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${step.color} flex items-center justify-center text-white text-3xl mb-6 shadow-lg`}>
+                    {step.icon}
+                  </div>
+
+                  <h3 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                    {step.title}
+                  </h3>
+
+                  <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-6`}>
+                    {step.description}
+                  </p>
+
+                  <div className={`text-lg font-semibold bg-gradient-to-r ${step.color} bg-clip-text text-transparent`}>
+                    {step.metric}
                   </div>
                 </div>
-                <h3 className="text-xl font-bold mb-2">{step.title}</h3>
-                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  {step.description}
-                </p>
+
+                <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-gradient-to-br from-white/5 to-transparent rounded-full blur-2xl" />
               </motion.div>
             ))}
           </div>
@@ -317,7 +330,7 @@ const Home = () => {
                 <div className={`w-16 h-16 rounded-xl bg-gradient-to-r ${feature.color} flex items-center justify-center text-white mb-6`}>
                   {feature.icon}
                 </div>
-                <h3 className="text-2xl font-bold mb-4">{feature.title}</h3>
+                <h3 className="text-2xl text-white font-bold mb-4">{feature.title}</h3>
                 <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                   {feature.description}
                 </p>
@@ -377,7 +390,7 @@ const Home = () => {
                     className="w-16 h-16 rounded-full object-cover mr-4"
                   />
                   <div>
-                    <h3 className="font-bold">{testimonial.name}</h3>
+                    <h3 className="font-bold text-white">{testimonial.name}</h3>
                     <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                       {testimonial.role}
                     </p>
