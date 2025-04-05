@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CourseMarketplaceClient } from '../utils/blockchain';
+import { CourseMarketplaceClient } from '../utils/mentoraBlockchain';
 
 /**
  * Custom hook for managing the CourseMarketplace client
