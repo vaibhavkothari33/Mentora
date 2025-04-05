@@ -184,7 +184,7 @@ const Home = () => {
                   <div className="flex justify-between items-center">
                     <div className="flex items-center">
                       <span className="text-yellow-500">★</span>
-                      <span className="ml-1">{course.rating}</span>
+                      <span className="ml-1 text-gray-400">{course.rating}</span>
                     </div>
                     <Link
                       to="/courses"
