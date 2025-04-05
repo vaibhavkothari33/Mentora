@@ -201,6 +201,16 @@ class MentoraClient {
       enrolledUsers: parseInt(stats.enrolledUsers)
     };
   }
+
+  async getCourseFullDetails(courseId) {
+    const courseInfo = await this.getCourseInfo(courseId);
+    const courseStats = await this.getCourseStats(courseId);
+    
+    return {
+      ...courseInfo,
+      ...courseStats
+    };
+  }
   
   // Get course intro video
   async getCourseIntroVideo(courseId) {
