@@ -11,6 +11,7 @@ import CourseDetails from './pages/CourseDetails';
 import NotFound from './pages/NotFound';
 import RoadmapGenerator from './pages/RoadmapGenerator';
 import AIAssignment from './pages/AIAssignment';
+import Contact from './pages/Contact';
 // import { EduChainABI, CertificateNFTABI } from './contracts/abis';
 // import { EduChainAddress, CertificateNFTAddress } from './contracts/addresses';
 import { ThemeProvider } from './context/ThemeContext';
@@ -62,6 +63,7 @@ function App() {
             <Route path="create-course" element={<CreateCourse />} />
             <Route path="about" element={<About />} />
             <Route path="ai-assignment" element={<AIAssignment />} />
+            <Route path="contact" element={<Contact />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>

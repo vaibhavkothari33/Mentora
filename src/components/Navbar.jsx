@@ -35,12 +35,12 @@ const Navbar = ({ account, onConnect }) => {
   };
 
   const navLinks = [
-    { path: '/courses', label: 'Courses' },
-    { path: '/roadmap', label: 'Learning Roadmap' },
     { path: '/dashboard', label: 'Dashboard' },
+    { path: '/courses', label: 'Courses' },
     { path: '/create-course', label: 'Create Course' },
-    { path: '/about', label: 'About' },
+    { path: '/roadmap', label: 'Learning Roadmap' },
     { path: '/ai-assignment', label: 'AI Assignments' },
+    { path: '/about', label: 'About' },
     // { path: '/contact', label: 'Contact' }
   ];
 
@@ -51,7 +51,7 @@ const Navbar = ({ account, onConnect }) => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
             <FaGraduationCap className={`text-2xl ${darkMode ? 'text-blue-400 group-hover:text-blue-300' : 'text-blue-600 group-hover:text-blue-500'} transition-colors duration-200`} />
-            <span className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>EduChain</span>
+            <span className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Mentora</span>
           </Link>
 
           {/* Desktop Navigation */}
