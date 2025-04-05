@@ -38,23 +38,23 @@ const teamMembers = [
   },
   {
     name: "Shreya Tripathi",
-    role: "UI/UX Designer",
-    image: "https://avatars.githubusercontent.com/u/45678901",
+    role: "Frontend Developer",
+    image: "https://media.licdn.com/dms/image/v2/D5603AQGQlhOAMS7xxQ/profile-displayphoto-shrink_400_400/B56ZYH2JZrHoAg-/0/1743888357700?e=1749081600&v=beta&t=bmAp0EtSgiAPRpjPZOZFyxFDuhb2D9nL2x1Q9s04_BA",
     bio: "Creative designer focused on blockchain application interfaces.",
     social: {
-      github: "https://github.com/emilyr",
-      linkedin: "https://linkedin.com/in/emilyr",
+      github: "https://github.com/ShreyaTripathi22",
+      linkedin: "https://www.linkedin.com/in/shreya-tripathi-41355b322",
       twitter: "https://twitter.com/emilyr"
     }
   },
   {
     name: "Ashika Srivastava",
-    role: "Backend Developer",
-    image: "https://avatars.githubusercontent.com/u/56789012",
+    role: "UI-UX Designer",
+    image: "https://media.licdn.com/dms/image/v2/D5603AQE8yObE7zRCCg/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1728052502186?e=1749081600&v=beta&t=4jPpjaEawR954ybi1ZZ7yXtDvUpbPAttQyI6fuKLA6Q",
     bio: "Full-stack developer specializing in Web3 integration.",
     social: {
-      github: "https://github.com/davidk",
-      linkedin: "https://linkedin.com/in/davidk",
+      github: "https://github.com/ashika-30",
+      linkedin: "https://www.linkedin.com/in/ashika-srivastava-00793827b",
       twitter: "https://twitter.com/davidk"
     }
   }

@@ -12,13 +12,13 @@ import { useTheme } from '../context/ThemeContext';
 const userData = {
   name: "John Doe",
   email: "john.doe@example.com",
-  profileImage: "https://avatars.githubusercontent.com/u/12345678",
+  profileImage: "https://media.istockphoto.com/id/1130927444/photo/portrait-of-a-happy-young-man.jpg?s=612x612&w=0&k=20&c=mG70qUc4ABP3imh2jWHIsrp5zsY6DuFJMIAef6YxNLE=",
   problemStats: {
-    totalSolved: 150,
-    streak: 7,
-    easy: 80,
-    medium: 50,
-    hard: 20
+    totalSolved: 12,
+    streak: 5,
+    easy: 3,
+    medium: 5,
+    hard: 4
   },
   activityData: {
     lastWeekSessions: 5,
