@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FaGraduationCap, FaCertificate,FaClock, FaRobot, FaArrowRight, FaPlay, FaChalkboardTeacher, FaUserGraduate, FaAward, FaCheck } from 'react-icons/fa';
+import { FaGraduationCap, FaCertificate,FaClock, FaRobot, FaArrowRight, FaPlay, FaChalkboardTeacher, FaUserGraduate, FaAward, FaCheck, FaTasks } from 'react-icons/fa';
 import WalletConnect from '../components/WalletConnect';
 import Aurora from './Aurora';
 import { useTheme } from '../context/ThemeContext';
@@ -93,7 +93,7 @@ const Home = () => {
                   darkMode 
                     ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700' 
                     : 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
-                } text-white px-8 py-4 rounded-xl transform hover:scale-105 transition-all duration-200 inline-flex items-center justify-center group text-lg font-semibold shadow-lg hover:shadow-xl`}
+                } text-white px-6 py-3 rounded-xl transform hover:scale-105 transition-all duration-200 inline-flex items-center justify-center group text-lg font-semibold shadow-lg hover:shadow-xl`}
               >
                 <FaPlay className="mr-2 group-hover:translate-x-1 transition-transform duration-200" />
                 Start Learning
@@ -283,6 +283,95 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Action Buttons Section */}
+      <section className="py-20 relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5" />
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          className="max-w-4xl mx-auto text-center px-4"
+        >
+          <h2 className={`text-4xl md:text-5xl font-bold mb-8 ${
+            darkMode ? 'text-white' : 'text-gray-900'
+          }`}>
+            Ready to Take Action?
+          </h2>
+          <p className={`text-xl mb-12 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            Choose your path and start your journey with EduChain today.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className={`${
+                darkMode 
+                  ? 'bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-500/20' 
+                  : 'bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200'
+              } rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300`}
+            >
+              <div className="flex flex-col items-center">
+                <div className={`w-16 h-16 rounded-full ${
+                  darkMode ? 'bg-blue-500/20' : 'bg-blue-100'
+                } flex items-center justify-center mb-6`}>
+                  <FaChalkboardTeacher className={`text-2xl ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                </div>
+                <h3 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Create Course
+                </h3>
+                <p className={`mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Share your knowledge and create engaging courses for the community.
+                </p>
+                <Link
+                  to="/create-course"
+                  className={`${
+                    darkMode 
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700' 
+                      : 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
+                  } text-white px-8 py-3 rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 inline-flex items-center group`}
+                >
+                  Get Started
+                  <FaArrowRight className="ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+                </Link>
+              </div>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className={`${
+                darkMode 
+                  ? 'bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-500/20' 
+                  : 'bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200'
+              } rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300`}
+            >
+              <div className="flex flex-col items-center">
+                <div className={`w-16 h-16 rounded-full ${
+                  darkMode ? 'bg-blue-500/20' : 'bg-blue-100'
+                } flex items-center justify-center mb-6`}>
+                  <FaTasks className={`text-2xl ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                </div>
+                <h3 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  My Assignments
+                </h3>
+                <p className={`mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Track your progress and view your completed assignments.
+                </p>
+                <Link
+                  to="/assignments"
+                  className={`${
+                    darkMode 
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700' 
+                      : 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
+                  } text-white px-8 py-3 rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 inline-flex items-center group`}
+                >
+                  View Assignments
+                  <FaArrowRight className="ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+                </Link>
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
+      </section>
+
       {/* Features Section */}
       <section className="py-20 px-4 relative">
         <div className="max-w-6xl mx-auto">
@@ -422,17 +511,20 @@ const Home = () => {
             Join thousands of students already learning on EduChain and transform your career.
           </p>
           
-          <Link
-            to="/courses"
-            className={`${
-              darkMode 
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700' 
-                : 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
-            } text-white px-12 py-4 rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 inline-flex items-center group`}
-          >
-            Explore Courses
-            <FaArrowRight className="ml-2 group-hover:translate-x-1 transition-transform duration-200" />
-          </Link>
+          <div className="flex flex-col items-center space-y-4">
+            <Link
+              to="/courses"
+              className={`${
+                darkMode 
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700' 
+                  : 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
+              } text-white px-12 py-4 rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 inline-flex items-center group`}
+            >
+              Explore Courses
+              <FaArrowRight className="ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+            </Link>
+            
+          </div>
         </motion.div>
       </section>
     </div>
