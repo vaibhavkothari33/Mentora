@@ -122,10 +122,10 @@ const RoadmapGenerator = () => {
         },
         style: { width: 250 }
       });
-      
+
       // Reset X position for each stage
       currentX = 300;
-      
+
       const stageNodes = stage.steps.map((step, stepIndex) => {
         const node = {
           id: `node-${stageIndex}-${stepIndex}`,
@@ -140,12 +140,12 @@ const RoadmapGenerator = () => {
             stageIndex,
             stepIndex
           },
-          style: { 
+          style: {
             width: 280,
             height: 'auto'
           }
         };
-        
+
         return node;
       });
 
@@ -206,21 +206,21 @@ const RoadmapGenerator = () => {
         throw new Error('Gemini API key is not configured. Please check your environment variables.');
       }
       const generatedRoadmap = await generateRoadmapWithGemini(prompt);
-      
+
       // Validate the roadmap structure
       if (!generatedRoadmap.title || !generatedRoadmap.stages || !Array.isArray(generatedRoadmap.stages)) {
         throw new Error('Invalid roadmap format received. Please try again.');
       }
-      
+
       createNodesAndEdges(generatedRoadmap);
       setRoadmap(generatedRoadmap);
-      
+
       // Save to history
       saveToHistory(generatedRoadmap);
     } catch (error) {
       console.error('Error generating roadmap:', error);
       setError(error.message || 'Failed to generate roadmap. Please try again.');
-      
+
       if (error.message.includes('JSON')) {
         setError('Failed to generate a valid roadmap format. Please try again with a different prompt.');
       } else if (error.message.includes('API key')) {
@@ -234,12 +234,12 @@ const RoadmapGenerator = () => {
   const saveToHistory = (roadmap) => {
     const timestamp = new Date().toISOString();
     const newHistory = [
-      { 
-        id: timestamp, 
-        title: roadmap.title, 
-        prompt, 
+      {
+        id: timestamp,
+        title: roadmap.title,
+        prompt,
         timestamp,
-        roadmap 
+        roadmap
       },
       ...savedRoadmaps.slice(0, 9) // Keep only the last 10 roadmaps
     ];
@@ -271,7 +271,7 @@ const RoadmapGenerator = () => {
       text: `Check out my learning roadmap: ${roadmap?.title}`,
       url: window.location.href,
     };
-    
+
     if (navigator.share && navigator.canShare(shareData)) {
       navigator.share(shareData);
     } else {
@@ -284,7 +284,7 @@ const RoadmapGenerator = () => {
   const onNodeClick = useCallback((event, node) => {
     // Skip if clicking on stage header
     if (node.data.isStageHeader) return;
-    
+
     const nodeIndex = parseInt(node.id.split('-')[2]);
     const stageIndex = parseInt(node.id.split('-')[1]);
     const stepNumber = roadmap.stages.slice(0, stageIndex).reduce(
@@ -331,7 +331,7 @@ const RoadmapGenerator = () => {
         e.preventDefault();
       }
     };
-    
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [prompt, loading]);
@@ -342,7 +342,7 @@ const RoadmapGenerator = () => {
       <div className="relative w-full bg-gradient-to-r from-indigo-900 via-purple-900 to-indigo-900 py-12 px-4 sm:px-6 lg:px-8 mb-8 overflow-hidden">
         <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/30 via-purple-500/30 to-pink-500/30 backdrop-blur-xl"></div>
-        
+
         <div className="relative max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div>
@@ -355,13 +355,6 @@ const RoadmapGenerator = () => {
               </p>
             </div>
             <div className="flex items-center gap-4">
-              <button 
-                onClick={toggleTheme}
-                className="p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition-all duration-300 backdrop-blur-sm border border-white/20 shadow-lg"
-                aria-label="Toggle theme"
-              >
-                {theme.darkMode ? '🌙' : '☀️'}
-              </button>
             </div>
           </div>
         </div>
@@ -369,7 +362,7 @@ const RoadmapGenerator = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Enhanced Input Section */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -388,7 +381,7 @@ const RoadmapGenerator = () => {
                 {showTips ? 'Hide Tips' : 'Show Tips'}
               </button>
             </div>
-            
+
             <AnimatePresence>
               {showTips && (
                 <motion.div
@@ -421,7 +414,7 @@ const RoadmapGenerator = () => {
                 </motion.div>
               )}
             </AnimatePresence>
-            
+
             <textarea
               ref={promptInputRef}
               value={prompt}
@@ -479,7 +472,7 @@ const RoadmapGenerator = () => {
                 </>
               )}
             </button>
-            
+
             <button
               onClick={() => setShowHistory(!showHistory)}
               className="px-6 py-4 rounded-xl border border-gray-700/50 hover:bg-gray-800/50 transition-all duration-300 flex items-center justify-center text-gray-300 hover:text-white hover:shadow-lg text-lg font-medium"
@@ -504,7 +497,7 @@ const RoadmapGenerator = () => {
                 ) : (
                   <ul className="space-y-3">
                     {savedRoadmaps.map((item) => (
-                      <li 
+                      <li
                         key={item.id}
                         className="p-4 rounded-xl cursor-pointer hover:bg-gray-700/50 transition-all duration-300 border border-gray-700/50 hover:border-gray-600/50"
                         onClick={() => loadFromHistory(item)}
@@ -547,17 +540,16 @@ const RoadmapGenerator = () => {
                 <button
                   key={mode}
                   onClick={() => setViewMode(mode)}
-                  className={`px-6 py-3 rounded-xl text-sm transition-all duration-300 ${
-                    viewMode === mode
+                  className={`px-6 py-3 rounded-xl text-sm transition-all duration-300 ${viewMode === mode
                       ? 'bg-indigo-900/80 text-indigo-200 font-medium shadow-lg border border-indigo-700/50'
                       : 'bg-gray-800/80 text-gray-400 hover:bg-gray-700/80 border border-gray-700/50'
-                  }`}
+                    }`}
                 >
                   {mode.charAt(0).toUpperCase() + mode.slice(1)} View
                 </button>
               ))}
             </div>
-            
+
             <div className="flex gap-3">
               <button
                 onClick={onDownloadImage}
@@ -640,7 +632,7 @@ const RoadmapGenerator = () => {
                 </Panel>
               </ReactFlow>
             </ReactFlowProvider>
-            
+
             {roadmap && (
               <ProgressIndicator
                 currentStep={currentStep}
@@ -650,7 +642,7 @@ const RoadmapGenerator = () => {
             )}
           </motion.div>
         )}
-        
+
         {/* List View */}
         {nodes.length > 0 && viewMode === 'list' && roadmap && (
           <motion.div
@@ -660,27 +652,26 @@ const RoadmapGenerator = () => {
           >
             <h2 className="text-2xl font-bold mb-6">{roadmap.title}</h2>
             <p className="mb-8">{roadmap.description}</p>
-            
+
             <div className="space-y-8">
               {roadmap.stages.map((stage, stageIndex) => (
                 <div key={stageIndex} className="space-y-4">
                   <h3 className={`text-xl font-bold pb-2 border-b ${theme.border}`}>
                     {stageIndex + 1}. {stage.title}
-                    <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
-                      stage.status === 'required' 
-                        ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200' 
+                    <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${stage.status === 'required'
+                        ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200'
                         : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                    }`}>
+                      }`}>
                       {stage.status}
                     </span>
                   </h3>
-                  
+
                   <div className="pl-4 border-l-2 border-indigo-500 space-y-4">
                     {stage.steps.map((step, stepIndex) => (
                       <div key={stepIndex} className={`p-4 rounded-lg ${theme.darkMode ? 'bg-gray-800' : 'bg-slate-600'}`}>
                         <h4 className="font-bold ">{stageIndex + 1}.{stepIndex + 1} {step.title}</h4>
                         <p className="text-sm mt-1">{step.description}</p>
-                        
+
                         <div className="mt-3 flex flex-wrap gap-2">
                           {step.topics && step.topics.map((topic, i) => (
                             <span key={i} className={`px-2 py-1 text-xs rounded-full ${theme.darkMode ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"}`}>
@@ -688,14 +679,14 @@ const RoadmapGenerator = () => {
                             </span>
                           ))}
                         </div>
-                        
+
                         {step.duration && (
                           <div className="mt-2 text-xs flex items-center">
                             <span className="mr-1">⏱</span>
                             <span>{step.duration}</span>
                           </div>
                         )}
-                        
+
                         {step.resources && step.resources.length > 0 && (
                           <div className="mt-3">
                             <h5 className="text-sm font-medium">Resources:</h5>
@@ -717,7 +708,7 @@ const RoadmapGenerator = () => {
             </div>
           </motion.div>
         )}
-        
+
         {/* Card View */}
         {nodes.length > 0 && viewMode === 'card' && roadmap && (
           <motion.div
@@ -728,7 +719,7 @@ const RoadmapGenerator = () => {
             <div className={`${theme.card} rounded-xl shadow-lg p-6 mb-8`}>
               <h2 className="text-2xl font-bold">{roadmap.title}</h2>
               <p className="mt-2">{roadmap.description}</p>
-              
+
               <div className="mt-4 flex items-center justify-between">
                 <div className="flex items-center">
                   <span className="text-sm">Total stages: {roadmap.stages.length}</span>
@@ -738,7 +729,7 @@ const RoadmapGenerator = () => {
                 <div className="flex space-x-2">
                   <button
                     onClick={onDownloadImage}
-                    className={`p-2 text-sm rounded-lg ${theme.darkMode ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200'} hover:${theme.hover.background} flex items-center`}
+                    className={`p-2 text-sm rounded-lg ${theme.darkMode ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200'} hover:${theme.hover.background} flex items-center`}
                   >
                     <FaSave className="mr-1" />
                     Save
@@ -746,7 +737,7 @@ const RoadmapGenerator = () => {
                 </div>
               </div>
             </div>
-            
+
             {/* Grid layout for cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {roadmap.stages.flatMap((stage, stageIndex) =>
@@ -754,49 +745,47 @@ const RoadmapGenerator = () => {
                   <motion.div
                     key={`${stageIndex}-${stepIndex}`}
                     initial={{ opacity: 0, y: 20 }}
-                    animate={{ 
-                      opacity: 1, 
+                    animate={{
+                      opacity: 1,
                       y: 0,
                       transition: { delay: (stageIndex * stage.steps.length + stepIndex) * 0.05 }
                     }}
                     whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
-                    className={`${theme.card} rounded-xl shadow-md p-5 border-l-4 ${
-                      stage.status === 'required' 
-                        ? 'border-indigo-500' 
+                    className={`${theme.card} rounded-xl shadow-md p-5 border-l-4 ${stage.status === 'required'
+                        ? 'border-indigo-500'
                         : 'border-blue-500'
-                    }`}
+                      }`}
                   >
                     <div className="flex justify-between items-start mb-3">
-                      <span className={`px-2 py-1 text-xs rounded-full ${theme.darkMode ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200'}`}>
+                      <span className={`px-2 py-1 text-xs rounded-full ${theme.darkMode ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200'}`}>
                         Stage {stageIndex + 1}
                       </span>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        step.type === 'concept' 
-                          ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' 
+                      <span className={`px-2 py-1 text-xs rounded-full ${step.type === 'concept'
+                          ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
                           : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                      }`}>
+                        }`}>
                         {step.type || 'practice'}
                       </span>
                     </div>
-                    
+
                     <h3 className="text-lg font-bold mb-2">{step.title}</h3>
                     <p className="text-sm mb-4">{step.description}</p>
-                    
+
                     <div className="flex flex-wrap gap-2 mb-4">
                       {step.topics && step.topics.map((topic, i) => (
-                        <span key={i} className={`px-2 py-1 text-xs rounded-full ${theme.darkMode ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200'}`}>
+                        <span key={i} className={`px-2 py-1 text-xs rounded-full ${theme.darkMode ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200'}`}>
                           {topic}
                         </span>
                       ))}
                     </div>
-                    
+
                     {step.duration && (
                       <div className="flex items-center text-xs mb-3">
                         <span className="mr-1">⏱</span>
                         <span>{step.duration}</span>
                       </div>
                     )}
-                    
+
                     {step.resources && step.resources.length > 0 && (
                       <div className="mt-auto pt-3 border-t border-gray-200 dark:border-gray-700">
                         <h5 className="text-xs font-medium mb-1">Resources:</h5>

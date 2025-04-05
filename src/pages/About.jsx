@@ -6,7 +6,7 @@ const teamMembers = [
   {
     name: "Vaibhav Kothari",
     role: "Blockchain Developer",
-    image: "https://avatars.githubusercontent.com/u/12345678",
+    image: "https://media.licdn.com/dms/image/v2/D5603AQHeVQkIycTb2Q/profile-displayphoto-shrink_400_400/B56ZWkr_TqHoAg-/0/1742224750690?e=1749081600&v=beta&t=wqS-4KI6dTgBG7loYFEDg25pOWFS4oHLYxA8nFLForQ",
     bio: "Blockchain expert with 5 years of experience in smart contract development.",
     social: {
       github: "https://github.com/vaibhavkothari33",
@@ -17,27 +17,27 @@ const teamMembers = [
   {
     name: "Abhigya Krishna",
     role: "AI Developer",
-    image: "https://avatars.githubusercontent.com/u/23456789",
+    image: "https://media.licdn.com/dms/image/v2/D5603AQEOcbAFIY6wFg/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1711817757493?e=1749081600&v=beta&t=3pKMrv9rYc7vjp3-Y_YZxypoKa9yOhbqaT3PXb9C39M",
     bio: "React specialist focused on creating intuitive user experiences.",
     social: {
-      github: "https://github.com/sarahj",
-      linkedin: "https://linkedin.com/in/sarahj",
+      github: "https://github.com/abhigyakrishna",
+      linkedin: "https://linkedin.com/in/abhigya-krishna",
       twitter: "https://twitter.com/sarahj"
     }
   },
   {
     name: "Navya Rathore",
     role: "Smart Contract Engineer",
-    image: "https://avatars.githubusercontent.com/u/34567890",
+    image: "https://media.licdn.com/dms/image/v2/D4E03AQGWDl890IIfjA/profile-displayphoto-shrink_400_400/profile-displayphoto-shrink_400_400/0/1693995536558?e=1749081600&v=beta&t=LcgTKeV3iKKRnZCoAHCpG6Ps7bneWz2GAHDI3zPSwFU",
     bio: "Solidity expert with a passion for decentralized education.",
     social: {
-      github: "https://github.com/michaelc",
-      linkedin: "https://linkedin.com/in/michaelc",
+      github: "https://github.com/navyarathore",
+      linkedin: "https://linkedin.com/in/navya-rathore",
       twitter: "https://twitter.com/michaelc"
     }
   },
   {
-    name: "Emily Rodriguez",
+    name: "Shreya Tripathi",
     role: "UI/UX Designer",
     image: "https://avatars.githubusercontent.com/u/45678901",
     bio: "Creative designer focused on blockchain application interfaces.",
@@ -48,7 +48,7 @@ const teamMembers = [
     }
   },
   {
-    name: "David Kim",
+    name: "Ashika Srivastava",
     role: "Backend Developer",
     image: "https://avatars.githubusercontent.com/u/56789012",
     bio: "Full-stack developer specializing in Web3 integration.",
