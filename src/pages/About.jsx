@@ -7,7 +7,7 @@ const teamMembers = [
     name: "Vaibhav Kothari",
     role: "Blockchain Developer",
     image: "https://media.licdn.com/dms/image/v2/D5603AQHeVQkIycTb2Q/profile-displayphoto-shrink_400_400/B56ZWkr_TqHoAg-/0/1742224750690?e=1749081600&v=beta&t=wqS-4KI6dTgBG7loYFEDg25pOWFS4oHLYxA8nFLForQ",
-    bio: "Blockchain expert with 5 years of experience in smart contract development.",
+    bio: "FullStack Developer with experience in smart contract development.",
     social: {
       github: "https://github.com/vaibhavkothari33",
       linkedin: "https://linkedin.com/in/vaibhavkothari33",
@@ -18,7 +18,7 @@ const teamMembers = [
     name: "Abhigya Krishna",
     role: "AI Developer",
     image: "https://media.licdn.com/dms/image/v2/D5603AQEOcbAFIY6wFg/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1711817757493?e=1749081600&v=beta&t=3pKMrv9rYc7vjp3-Y_YZxypoKa9yOhbqaT3PXb9C39M",
-    bio: "React specialist focused on creating intuitive user experiences.",
+    bio: "Backend Developer with experience in smart contract development.",
     social: {
       github: "https://github.com/abhigyakrishna",
       linkedin: "https://linkedin.com/in/abhigya-krishna",
@@ -29,7 +29,7 @@ const teamMembers = [
     name: "Navya Rathore",
     role: "Smart Contract Engineer",
     image: "https://media.licdn.com/dms/image/v2/D4E03AQGWDl890IIfjA/profile-displayphoto-shrink_400_400/profile-displayphoto-shrink_400_400/0/1693995536558?e=1749081600&v=beta&t=LcgTKeV3iKKRnZCoAHCpG6Ps7bneWz2GAHDI3zPSwFU",
-    bio: "Solidity expert with a passion for decentralized education.",
+    bio: "AI Developer with experience in smart contract development.",
     social: {
       github: "https://github.com/navyarathore",
       linkedin: "https://linkedin.com/in/navya-rathore",
