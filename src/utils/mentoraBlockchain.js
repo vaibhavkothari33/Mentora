@@ -1,12 +1,12 @@
 import Web3 from 'web3';
-import * as courseMarketplaceABI from './CourseMarketplace.json';
+import * as mentoraAbi from './Mentora.json';
 
-class CourseMarketplaceClient {
+class MentoraClient {
   constructor(providerUrl, contractAddress, privateKey = null) {
     this.web3 = new Web3(providerUrl);
     
     // Contract ABI - you would need to extract this from your compiled contract
-    this.contractABI = courseMarketplaceABI.abi;
+    this.contractABI = mentoraAbi.abi;
     
     // Contract address
     this.contractAddress = contractAddress;
@@ -52,7 +52,8 @@ class CourseMarketplaceClient {
     for (let i = 1; i <= courseCount; i++) {
       try {
         const courseInfo = await this.getCourseInfo(i);
-        courses.push(courseInfo);
+        const courseStats = await this.getCourseStats(i);
+        courses.push({...courseInfo, ...courseStats});
       } catch (error) {
         console.error(`Error fetching course ${i}:`, error);
       }
@@ -62,14 +63,16 @@ class CourseMarketplaceClient {
   }
   
   // Create a new course
-  async createCourse(title, description, thumbnailIpfsHash, introVideoIpfsHash, duration, price, options = {}) {
+  async createCourse(title, description, category, thumbnailIpfsHash, introVideoIpfsHash, difficulty, duration, price, options = {}) {
     const priceWei = this.web3.utils.toWei(price.toString(), 'ether');
     
     const tx = this.contract.methods.createCourse(
       title,
       description,
+      category,
       thumbnailIpfsHash,
       introVideoIpfsHash,
+      difficulty,
       duration,
       priceWei
     );
@@ -179,12 +182,23 @@ class CourseMarketplaceClient {
       id: parseInt(courseInfo.id),
       title: courseInfo.title,
       description: courseInfo.description,
+      category: courseInfo.category,
       thumbnailIpfsHash: courseInfo.thumbnailIpfsHash,
-      creator: courseInfo.creator,
-      price: this.web3.utils.fromWei(courseInfo.price, 'ether'),
-      isActive: courseInfo.isActive,
-      totalSales: parseInt(courseInfo.totalSales),
-      moduleCount: parseInt(courseInfo.moduleCount)
+      difficulty: parseInt(courseInfo.difficulty),
+      duration: parseInt(courseInfo.duration)
+    };
+  }
+
+  // Get course stats
+  async getCourseStats(courseId) {
+    const stats = await this.contract.methods.getCourseStats(courseId).call();
+    return {
+      creator: stats.creator,
+      isActive: stats.isActive,
+      price: this.web3.utils.fromWei(stats.price, 'ether'),
+      totalSales: parseInt(stats.totalSales),
+      moduleCount: parseInt(stats.moduleCount),
+      enrolledUsers: parseInt(stats.enrolledUsers)
     };
   }
   
@@ -264,4 +278,4 @@ class CourseMarketplaceClient {
   }
 }
 
-export { CourseMarketplaceClient };
+export { MentoraClient };

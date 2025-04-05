@@ -2,13 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaSpinner, FaUpload, FaPlus, FaTrash } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
-import { useEduChain } from '../hooks/useEduChain';
 import ipfsService from '../utils/ipfsStorage';
 
 const CreateCourse = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
-  const { createCourse } = useEduChain();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);

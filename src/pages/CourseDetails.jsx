@@ -2,13 +2,13 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FaPlay, FaUser, FaClock, FaBook, FaCertificate, FaChalkboardTeacher, 
          FaStar, FaEthereum, FaLinkedin, FaGithub, FaGlobe } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
-import { useCourseMarketplace } from '../hooks/useCourseMarketplace';
+import { useMentoraContract } from '../hooks/useMentoraContract';
 
 const CourseDetails = () => {
   const { courseId } = useParams();
   const { theme } = useTheme();
   const navigate = useNavigate();
-  const { getClient } = useCourseMarketplace();
+  const { getClient } = useMentoraContract();
 
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
