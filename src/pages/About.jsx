@@ -112,7 +112,7 @@ function About() {
             animate={{ y: 0 }}
             className='text-5xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text'
           >
-            Welcome to EduChain
+            Welcome to Mentora
           </motion.h1>
           <motion.p 
             initial={{ y: 20 }}
@@ -132,7 +132,7 @@ function About() {
           >
             <h2 className='text-3xl font-bold mb-4'>About the Platform</h2>
             <p className='text-gray-300'>
-              EduChain is a revolutionary blockchain-based learning platform that combines 
+              Mentora is a revolutionary blockchain-based learning platform that combines 
               decentralized education with verifiable credentials. Our platform enables 
               students to access high-quality courses while earning NFT certificates 
               that prove their achievements.

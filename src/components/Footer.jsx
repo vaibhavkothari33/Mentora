@@ -53,11 +53,11 @@ const Footer = () => {
             <Link to="/" className="flex items-center space-x-2 mb-4">
               <FaGraduationCap className={`text-2xl ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
               <span className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                EduChain
+                Mentora
               </span>
             </Link>
             <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mb-4`}>
-              Empowering education through blockchain technology. Learn, earn certificates, and build your future with EduChain.
+              Empowering education through blockchain technology. Learn, earn certificates, and build your future with Mentora.
             </p>
           </div>
 

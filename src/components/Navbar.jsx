@@ -34,7 +34,7 @@ const Navbar = ({ account, onConnect }) => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
             <FaGraduationCap className={`text-2xl ${darkMode ? 'text-blue-400 group-hover:text-blue-300' : 'text-blue-600 group-hover:text-blue-500'} transition-colors duration-200`} />
-            <span className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>EduChain</span>
+            <span className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Mentora</span>
           </Link>
 
           {/* Desktop Navigation */}
