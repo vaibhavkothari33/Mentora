@@ -13,6 +13,7 @@ import RoadmapGenerator from './pages/RoadmapGenerator';
 import AIAssignment from './pages/AIAssignment';
 import Contact from './pages/Contact';
 import Assignments from './pages/Assignments';
+import Profile from './pages/Profile';
 // import { EduChainABI, CertificateNFTABI } from './contracts/abis';
 // import { EduChainAddress, CertificateNFTAddress } from './contracts/addresses';
 import { ThemeProvider } from './context/ThemeContext';
@@ -61,6 +62,7 @@ function App() {
             </Route>
             <Route path="roadmap" element={<RoadmapGenerator />} />
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="profile" element={<Profile />} />
             <Route path="create-course" element={<CreateCourse />} />
             <Route path="about" element={<About />} />
             <Route path="ai-assignment" element={<AIAssignment />} />
