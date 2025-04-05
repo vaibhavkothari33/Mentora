@@ -35,13 +35,14 @@ const Navbar = ({ account, onConnect }) => {
   };
 
   const navLinks = [
-    { path: '/dashboard', label: 'Dashboard' },
     { path: '/courses', label: 'Courses' },
-    //{ path: '/create-course', label: 'Create Course' },
+    // { path: '/profile', label: 'Profile' },
+    { path: '/create-course', label: 'Create Course' },
     { path: '/roadmap', label: 'Learning Roadmap' },
     { path: '/ai-assignment', label: 'AI Assignments' },
     //{ path: '/assignments', label: 'Assignments' },
     { path: '/about', label: 'About' },
+    { path: '/dashboard', label: 'Profile' },
     // { path: '/contact', label: 'Contact' }
   ];
 

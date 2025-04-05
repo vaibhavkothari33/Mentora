@@ -4,6 +4,8 @@ import { FaGraduationCap, FaCertificate, FaChartLine, FaTrophy, FaClock, FaStar,
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import ipfsService from '../utils/ipfsStorage';
+import { Code, BarChart } from 'lucide-react';
+import Aurora from './Aurora';
 
 const VideoPlayer = ({ videoUrl, title }) => {
   const videoRef = useRef(null);
@@ -208,14 +210,25 @@ const CourseContent = ({ course, onClose, onUpdateProgress }) => {
   const { theme } = useTheme();
   const [activeVideo, setActiveVideo] = useState(null);
   const [completedTopics, setCompletedTopics] = useState(new Set());
+  const [activeTab, setActiveTab] = useState('content'); // ['content', 'overview', 'resources']
 
-  // Simulated course content structure
+  // Enhanced course content structure
   const topics = [
     {
       id: 1,
       title: "Introduction to Blockchain",
       duration: "15:30",
       videoUrl: "https://bafybeiajhp6f5rpiu4wvazgzq3scxilkeevdvngkrhny42x3oo7hrs6hbq.ipfs.w3s.link/VID-20250221-WA0059.mp4",
+      description: "Learn the fundamental concepts of blockchain technology and its applications.",
+      objectives: [
+        "Understand blockchain basics",
+        "Learn about distributed ledgers",
+        "Explore blockchain use cases"
+      ],
+      resources: [
+        { type: 'pdf', name: 'Blockchain Basics Guide', url: '#' },
+        { type: 'link', name: 'Additional Reading', url: '#' }
+      ],
       isLocked: false
     },
     {
@@ -252,110 +265,275 @@ const CourseContent = ({ course, onClose, onUpdateProgress }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
       <motion.div
         initial={{ scale: 0.9 }}
         animate={{ scale: 1 }}
         exit={{ scale: 0.9 }}
-        className={`${theme.card} rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden`}
+        className={`${theme.card} rounded-xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden`}
         onClick={e => e.stopPropagation()}
       >
         {/* Course Header */}
         <div className={`p-6 border-b ${theme.border}`}>
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold">{course.title}</h2>
+          <div className="flex justify-between items-start">
+            <div>
+              <h2 className="text-2xl font-bold">{course.title}</h2>
+              <div className="mt-2 flex flex-wrap items-center gap-4">
+                <div className="flex items-center">
+                  <FaClock className={`mr-2 ${theme.text.secondary}`} />
+                  <span className={theme.text.secondary}>4 Topics • 2 Hours Total</span>
+                </div>
+                <div className="flex items-center">
+                  <FaGraduationCap className={`mr-2 ${theme.text.secondary}`} />
+                  <span className={theme.text.secondary}>{course.progress}% Complete</span>
+                </div>
+                <div className={`px-3 py-1 rounded-full text-sm ${
+                  course.progress === 100 
+                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                    : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                }`}>
+                  {course.progress === 100 ? 'Completed' : 'In Progress'}
+                </div>
+              </div>
+            </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+              className={`p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors`}
             >
-              ×
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           </div>
-          <div className="mt-2 flex items-center space-x-4">
-            <div className="flex items-center">
-              <FaClock className={`mr-2 ${theme.text.secondary}`} />
-              <span className={theme.text.secondary}>4 Topics</span>
-            </div>
-            <div className="flex items-center">
-              <FaGraduationCap className={`mr-2 ${theme.text.secondary}`} />
-              <span className={theme.text.secondary}>{course.progress}% Complete</span>
-            </div>
+
+          {/* Navigation Tabs */}
+          <div className="flex items-center space-x-4 mt-6">
+            {['Content', 'Overview', 'Resources'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab.toLowerCase())}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  activeTab === tab.toLowerCase()
+                    ? `bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400`
+                    : `hover:bg-gray-100 dark:hover:bg-gray-700 ${theme.text.secondary}`
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 h-[600px]">
-          {/* Video Player Section - Now takes 2/3 of the width */}
-          <div className={`${theme.background} p-6 lg:col-span-2`}>
-            {activeVideo ? (
-              <div className="space-y-4">
-                <VideoPlayer 
-                  videoUrl={activeVideo.videoUrl} 
-                  title={activeVideo.title}
-                />
-                <button
-                  onClick={() => handleTopicComplete(activeVideo.id)}
-                  className={`px-4 py-2 rounded-lg ${
-                    completedTopics.has(activeVideo.id)
-                      ? 'bg-green-500 text-white'
-                      : 'bg-blue-500 hover:bg-blue-600 text-white'
-                  }`}
-                >
-                  {completedTopics.has(activeVideo.id) ? 'Completed' : 'Mark as Complete'}
-                </button>
+        <div className="grid grid-cols-1 lg:grid-cols-3 h-[calc(90vh-180px)]">
+          {/* Main Content Area */}
+          <div className={`${theme.background} p-6 lg:col-span-2 overflow-y-auto`}>
+            {activeTab === 'content' && (
+              <>
+                {activeVideo ? (
+                  <div className="space-y-6">
+                    <VideoPlayer 
+                      videoUrl={activeVideo.videoUrl} 
+                      title={activeVideo.title}
+                    />
+                    <div className={`p-6 rounded-xl border ${theme.border}`}>
+                      <h3 className="text-xl font-semibold mb-4">{activeVideo.title}</h3>
+                      <p className={`mb-4 ${theme.text.secondary}`}>{activeVideo.description}</p>
+                      
+                      <h4 className="font-semibold mb-2">Learning Objectives:</h4>
+                      <ul className="space-y-2 mb-6">
+                        {activeVideo.objectives?.map((objective, index) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <svg className="w-5 h-5 text-blue-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>{objective}</span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <button
+                        onClick={() => handleTopicComplete(activeVideo.id)}
+                        className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+                          completedTopics.has(activeVideo.id)
+                            ? 'bg-green-500 text-white'
+                            : 'bg-blue-500 hover:bg-blue-600 text-white hover:shadow-lg'
+                        }`}
+                      >
+                        {completedTopics.has(activeVideo.id) ? (
+                          <span className="flex items-center gap-2">
+                            <FaCheck /> Completed
+                          </span>
+                        ) : (
+                          'Mark as Complete'
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                    <div className={`p-4 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-4`}>
+                      <FaPlay className="w-8 h-8 text-blue-500" />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-2">Ready to Start Learning?</h3>
+                    <p className={`${theme.text.secondary} max-w-md`}>
+                      Select a topic from the curriculum to begin your learning journey.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {activeTab === 'overview' && (
+              <div className="space-y-6">
+                <div className={`p-6 rounded-xl border ${theme.border}`}>
+                  <h3 className="text-xl font-semibold mb-4">Course Overview</h3>
+                  <p className={`mb-6 ${theme.text.secondary}`}>
+                    This comprehensive course covers the fundamentals of blockchain technology,
+                    from basic concepts to advanced implementations. You'll learn through
+                    practical examples and hands-on exercises.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className={`p-4 rounded-lg bg-gray-50 dark:bg-gray-800`}>
+                      <h4 className="font-semibold mb-2">Prerequisites</h4>
+                      <ul className={`space-y-2 ${theme.text.secondary}`}>
+                        <li>Basic programming knowledge</li>
+                        <li>Understanding of cryptography</li>
+                        <li>Familiarity with web technologies</li>
+                      </ul>
+                    </div>
+                    
+                    <div className={`p-4 rounded-lg bg-gray-50 dark:bg-gray-800`}>
+                      <h4 className="font-semibold mb-2">What You'll Learn</h4>
+                      <ul className={`space-y-2 ${theme.text.secondary}`}>
+                        <li>Blockchain fundamentals</li>
+                        <li>Smart contract development</li>
+                        <li>DApp architecture</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className={`p-6 rounded-xl border ${theme.border}`}>
+                  <h3 className="text-xl font-semibold mb-4">Course Timeline</h3>
+                  <div className="space-y-4">
+                    {topics.map((topic, index) => (
+                      <div key={topic.id} className="flex items-start gap-4">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          completedTopics.has(topic.id)
+                            ? 'bg-green-100 text-green-600'
+                            : 'bg-blue-100 text-blue-600'
+                        }`}>
+                          {index + 1}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium">{topic.title}</h4>
+                          <p className={`text-sm ${theme.text.secondary}`}>{topic.duration}</p>
+                        </div>
+                        {completedTopics.has(topic.id) && (
+                          <FaCheck className="text-green-500" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-500">
-                Select a topic to start learning
+            )}
+
+            {activeTab === 'resources' && (
+              <div className="space-y-6">
+                <div className={`p-6 rounded-xl border ${theme.border}`}>
+                  <h3 className="text-xl font-semibold mb-4">Course Resources</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {topics.map(topic => (
+                      <div key={topic.id} className={`p-4 rounded-lg border ${theme.border}`}>
+                        <h4 className="font-medium mb-3">{topic.title}</h4>
+                        <ul className="space-y-2">
+                          {topic.resources?.map((resource, index) => (
+                            <li key={index}>
+                              <a
+                                href={resource.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                                  theme.text.secondary
+                                }`}
+                              >
+                                {resource.type === 'pdf' ? (
+                                  <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                )}
+                                {resource.name}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>
 
-          {/* Topics List - Now takes 1/3 of the width */}
+          {/* Topics List */}
           <div className={`${theme.card} border-l ${theme.border} overflow-y-auto`}>
             <div className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Course Content</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Course Curriculum</h3>
+                <span className={`text-sm ${theme.text.secondary}`}>
+                  {completedTopics.size}/{topics.length} Completed
+                </span>
+              </div>
+              
               <div className="space-y-2">
                 {topics.map((topic) => (
                   <motion.div
                     key={topic.id}
                     whileHover={{ x: 4 }}
-                    className={`p-4 rounded-lg cursor-pointer ${
+                    className={`p-4 rounded-xl cursor-pointer transition-colors ${
                       activeVideo?.id === topic.id
-                        ? 'bg-blue-50 dark:bg-gray-700'
+                        ? 'bg-blue-50 dark:bg-gray-700/50 border border-blue-200 dark:border-blue-500/30'
                         : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                     }`}
                     onClick={() => !topic.isLocked && setActiveVideo(topic)}
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded-full ${
+                        <div className={`p-2 rounded-lg ${
                           completedTopics.has(topic.id)
-                            ? 'bg-green-100 text-green-500'
+                            ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
                             : topic.isLocked
-                              ? 'bg-gray-100 text-gray-400'
-                              : 'bg-blue-100 text-blue-500'
+                              ? 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500'
+                              : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                         }`}>
                           {completedTopics.has(topic.id) ? (
-                            <FaCheck />
+                            <FaCheck className="w-4 h-4" />
                           ) : topic.isLocked ? (
-                            <FaLock />
+                            <FaLock className="w-4 h-4" />
                           ) : (
-                            <FaPlay />
+                            <FaPlay className="w-4 h-4" />
                           )}
                         </div>
-                        <div>
-                          <h4 className={`font-medium ${
+                        <div className="flex-1 min-w-0">
+                          <h4 className={`font-medium truncate ${
                             topic.isLocked ? 'text-gray-400' : ''
                           }`}>
                             {topic.title}
                           </h4>
-                          <span className={`text-sm ${theme.text.secondary}`}>
-                            {topic.duration}
-                          </span>
                         </div>
                       </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-sm pl-11">
+                      <span className={theme.text.secondary}>{topic.duration}</span>
                       {topic.isLocked && (
                         <span className="text-sm text-gray-400">
                           Unlocks at {topic.id * 25}%
@@ -378,7 +556,7 @@ const Dashboard = ({ eduChain, certificateNFT, account }) => {
     {
       id: 1,
       title: "Blockchain Fundamentals",
-      progress: 75,
+      progress: 55,
       hasCompleted: false
     },
     {
@@ -405,15 +583,15 @@ const Dashboard = ({ eduChain, certificateNFT, account }) => {
     {
       tokenId: "NFT-001",
       courseId: "CERT-BF-101",
-      studentName: "John Doe",
-      completionDate: "2024-03-15",
+      studentName: "Vaibhav Kothari",
+      completionDate: "2025-04-05",
       score: "95"
     },
     {
       tokenId: "NFT-002",
       courseId: "CERT-SC-201",
-      studentName: "John Doe",
-      completionDate: "2024-03-20",
+      studentName: "Vaibhav Kothari",
+      completionDate: "2025-04-05",
       score: "88"
     }
   ]);
@@ -422,6 +600,25 @@ const Dashboard = ({ eduChain, certificateNFT, account }) => {
   const { theme } = useTheme();
 
   const [activeCourse, setActiveCourse] = useState(null);
+
+  // Add new state for user profile data
+  const [userData] = useState({
+    name: "Vaibhav Kothari",
+    email: "vaibhavkothari50@gmail.com",
+    profileImage: "https://media.licdn.com/dms/image/v2/D5603AQHeVQkIycTb2Q/profile-displayphoto-shrink_400_400/B56ZWkr_TqHoAg-/0/1742224750690?e=1749081600&v=beta&t=wqS-4KI6dTgBG7loYFEDg25pOWFS4oHLYxA8nFLForQ",
+    problemStats: {
+      totalSolved: 150,
+      streak: 7,
+      easy: 80,
+      medium: 50,
+      hard: 20
+    },
+    activityData: {
+      lastWeekSessions: 5,
+      averageSessionTime: 45,
+      completionRate: 85
+    }
+  });
 
   const updateProgress = async (courseId, newProgress) => {
     setEnrolledCourses(prev => prev.map(course => 
@@ -463,54 +660,225 @@ const Dashboard = ({ eduChain, certificateNFT, account }) => {
 
   return (
     <div className={`min-h-screen ${theme.background} ${theme.text.primary}`}>
-      {/* Hero Stats Section */}
-      <div className="relative overflow-hidden">
-        <div className={`absolute inset-0 ${theme.background} opacity-90`}></div>
+      {/* Hero Section with Profile Overview */}
+      <div className="relative overflow-hidden bg-gradient-to-b from-gray-900 to-black">
+        <Aurora 
+          colorStops={["#3A29FF", "#FF94B4", "#FF3232"]}
+          blend={0.5}
+          amplitude={3.0}
+          speed={0.5}
+        />
         <div className="relative max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+            className="flex flex-col md:flex-row items-center justify-between"
           >
-            {/* Stats Cards */}
-            {[
-              {
-                icon: <FaGraduationCap className="text-3xl" />,
-                title: "Enrolled Courses",
-                value: enrolledCourses.length,
-                color: "from-blue-500 to-blue-600"
-              },
-              {
-                icon: <FaCertificate className="text-3xl" />,
-                title: "Certificates Earned",
-                value: certificates.length,
-                color: "from-emerald-500 to-emerald-600"
-              },
-              {
-                icon: <FaChartLine className="text-3xl" />,
-                title: "Average Progress",
-                value: `${Math.round(enrolledCourses.reduce((acc, course) => acc + course.progress, 0) / enrolledCourses.length)}%`,
-                color: "from-violet-500 to-violet-600"
-              }
-            ].map((stat, index) => (
-              <motion.div
-                key={index}
-                variants={itemVariants}
-                className={`${theme.card} rounded-2xl shadow-xl p-6 border ${theme.border} relative overflow-hidden group`}
-              >
-                <div className={`absolute inset-0 bg-gradient-to-r ${stat.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
-                <div className="flex items-center space-x-4">
-                  <div className={`p-3 rounded-xl bg-gradient-to-r ${stat.color} text-white`}>
-                    {stat.icon}
-                  </div>
-                  <div>
-                    <p className={`text-sm ${theme.text.secondary}`}>{stat.title}</p>
-                    <h3 className="text-2xl font-bold">{stat.value}</h3>
-                  </div>
+            {/* Profile Info */}
+            <div className="text-center md:text-left mb-8 md:mb-0">
+              <div className="flex items-center gap-6">
+                <img 
+                  src="https://media.licdn.com/dms/image/v2/D5603AQHeVQkIycTb2Q/profile-displayphoto-shrink_400_400/B56ZWkr_TqHoAg-/0/1742224750690?e=1749081600&v=beta&t=wqS-4KI6dTgBG7loYFEDg25pOWFS4oHLYxA8nFLForQ"
+                  alt={userData.name}
+                  className="w-24 h-24 rounded-full object-cover border-4 border-blue-500"
+                />
+                <div>
+                  <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text">
+                    Welcome back, {userData.name}
+                  </h1>
+                  <p className="text-gray-300">{userData.email}</p>
                 </div>
-              </motion.div>
-            ))}
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="flex gap-6">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-400">{userData.problemStats.totalSolved}</div>
+                <div className="text-sm text-gray-400">Problems Solved</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-green-400">{userData.problemStats.streak}</div>
+                <div className="text-sm text-gray-400">Day Streak</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-purple-400">{userData.activityData.completionRate}%</div>
+                <div className="text-sm text-gray-400">Completion Rate</div>
+              </div>
+            </div>
           </motion.div>
+        </div>
+      </div>
+
+      {/* Performance Stats Grid */}
+      <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+          {/* Problem Solving Stats */}
+          <motion.div
+            variants={itemVariants}
+            className={`${theme.card} rounded-xl shadow-xl p-6 border ${theme.border}`}
+          >
+            <div className="flex items-center mb-4">
+              <Code className="w-5 h-5 mr-2 text-blue-400" />
+              <h2 className="text-lg font-semibold">Problem Solving Stats</h2>
+            </div>
+            
+            <div className="space-y-4">
+              {/* Easy Problems */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm font-medium">Easy ({userData.problemStats.easy})</span>
+                  <span className="text-sm text-green-400">{Math.round(userData.problemStats.easy / userData.problemStats.totalSolved * 100)}%</span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="bg-green-400 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${(userData.problemStats.easy / userData.problemStats.totalSolved) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Medium Problems */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm font-medium">Medium ({userData.problemStats.medium})</span>
+                  <span className="text-sm text-yellow-400">{Math.round(userData.problemStats.medium / userData.problemStats.totalSolved * 100)}%</span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="bg-yellow-400 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${(userData.problemStats.medium / userData.problemStats.totalSolved) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Hard Problems */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm font-medium">Hard ({userData.problemStats.hard})</span>
+                  <span className="text-sm text-red-400">{Math.round(userData.problemStats.hard / userData.problemStats.totalSolved * 100)}%</span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="bg-red-400 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${(userData.problemStats.hard / userData.problemStats.totalSolved) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Activity Summary */}
+          <motion.div
+            variants={itemVariants}
+            className={`${theme.card} rounded-xl shadow-xl p-6 border ${theme.border}`}
+          >
+            <div className="flex items-center mb-4">
+              <BarChart className="w-5 h-5 mr-2 text-blue-400" />
+              <h2 className="text-lg font-semibold">Activity Summary</h2>
+            </div>
+
+            <div className="space-y-6">
+              {/* Weekly Sessions */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium">Weekly Sessions</span>
+                  <span className="text-sm font-medium">{userData.activityData.lastWeekSessions}/7 days</span>
+                </div>
+                <div className="grid grid-cols-7 gap-2">
+                  {[...Array(7)].map((_, i) => (
+                    <div 
+                      key={i}
+                      className={`h-8 rounded ${
+                        i < userData.activityData.lastWeekSessions 
+                          ? 'bg-blue-400 dark:bg-blue-500' 
+                          : 'bg-gray-200 dark:bg-gray-700'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Average Session Time */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium">Average Session Time</span>
+                  <span className="text-sm font-medium">{userData.activityData.averageSessionTime} min</span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="bg-blue-400 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(userData.activityData.averageSessionTime / 60 * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Task Completion Rate */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium">Task Completion Rate</span>
+                  <span className="text-sm font-medium">{userData.activityData.completionRate}%</span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="bg-blue-400 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${userData.activityData.completionRate}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Hero Stats Section */}
+        <div className="relative overflow-hidden">
+          <div className={`absolute inset-0 ${theme.background} opacity-90`}></div>
+          <div className="relative max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-6"
+            >
+              {/* Stats Cards */}
+              {[
+                {
+                  icon: <FaGraduationCap className="text-3xl" />,
+                  title: "Enrolled Courses",
+                  value: enrolledCourses.length,
+                  color: "from-blue-500 to-blue-600"
+                },
+                {
+                  icon: <FaCertificate className="text-3xl" />,
+                  title: "Certificates Earned",
+                  value: certificates.length,
+                  color: "from-emerald-500 to-emerald-600"
+                },
+                {
+                  icon: <FaChartLine className="text-3xl" />,
+                  title: "Average Progress",
+                  value: `${Math.round(enrolledCourses.reduce((acc, course) => acc + course.progress, 0) / enrolledCourses.length)}%`,
+                  color: "from-violet-500 to-violet-600"
+                }
+              ].map((stat, index) => (
+                <motion.div
+                  key={index}
+                  variants={itemVariants}
+                  className={`${theme.card} rounded-2xl shadow-xl p-6 border ${theme.border} relative overflow-hidden group`}
+                >
+                  <div className={`absolute inset-0 bg-gradient-to-r ${stat.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
+                  <div className="flex items-center space-x-4">
+                    <div className={`p-3 rounded-xl bg-gradient-to-r ${stat.color} text-white`}>
+                      {stat.icon}
+                    </div>
+                    <div>
+                      <p className={`text-sm ${theme.text.secondary}`}>{stat.title}</p>
+                      <h3 className="text-2xl font-bold">{stat.value}</h3>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
         </div>
       </div>
 

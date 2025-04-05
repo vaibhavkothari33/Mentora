@@ -4,9 +4,10 @@ import { useTheme } from '../context/ThemeContext';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { useChat } from '../hooks/useAgent';
-import { FaSpinner, FaArrowDown, FaPaperPlane, FaGithub } from 'react-icons/fa';
+import { FaSpinner, FaArrowDown, FaPaperPlane, FaGithub, FaCheck, FaTasks, FaCode, FaChevronDown } from 'react-icons/fa';
 import { IoInformationCircle } from 'react-icons/io5';
 import { MdError, MdOutlineSmartToy } from 'react-icons/md';
+import { assignments } from '../data/assignments';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -46,7 +47,141 @@ class ErrorBoundary extends React.Component {
 const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID; // Replace with your GitHub OAuth App Client ID
 const GITHUB_REDIRECT_URI = import.meta.env.VITE_GITHUB_REDIRECT_URI;
 const GITHUB_CLIENT_SECRET = import.meta.env.VITE_GITHUB_CLIENT_SECRET; // Replace with your GitHub OAuth App Client Secret
-const GitHubRepoSelector = ({ onSelect, selectedRepo, darkMode, sendMessage }) => {
+
+async function getRepoStructure(repoUrl) {
+  try {
+    // Extract owner and repo name from GitHub URL
+    const [owner, repo] = repoUrl.replace('https://github.com/', '').split('/');
+    
+    // Fetch repository contents from GitHub API with recursive=1 to get all contents
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/main?recursive=1`);
+    let data = await response.json();
+    
+    if (data.message === "Not Found") {
+      // Try with master branch if main is not found
+      const masterResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/master?recursive=1`);
+      data = await masterResponse.json();
+    }
+
+    if (!data.tree) {
+      throw new Error('Unable to fetch repository structure');
+    }
+
+    return formatRepoStructure(data.tree, owner, repo);
+  } catch (error) {
+    console.error('Error fetching repo structure:', error);
+    throw new Error('Failed to fetch repository structure');
+  }
+}
+
+function formatRepoStructure(tree, owner, repo) {
+  // Define patterns for files and directories to exclude
+  const excludePatterns = [
+    /^\.git/,
+    /^\.gitignore$/,
+    /^node_modules/,
+    /^\.env/,
+    /^\.vscode/,
+    /^\.idea/,
+    /^\.DS_Store$/,
+    /^package-lock\.json$/,
+    /^yarn\.lock$/,
+    /^\.next/,
+    /^dist/,
+    /^build/,
+    /^coverage/,
+    /^\.cache/,
+    /^\.husky/,
+    /^\.github/,
+    /^\.eslintrc/,
+    /^\.prettierrc/,
+    /^\.babelrc/,
+    /^\.npmrc$/,
+    /^\.yarnrc$/
+  ];
+
+  // Create a map to store the directory structure
+  const dirStructure = new Map();
+  
+  // Filter and sort items: directories first, then files
+  const sortedItems = tree
+    .filter(item => !excludePatterns.some(pattern => pattern.test(item.path))) // Filter out excluded items
+    .sort((a, b) => {
+      if (a.type === 'tree' && b.type !== 'tree') return -1;
+      if (a.type !== 'tree' && b.type === 'tree') return 1;
+      return a.path.localeCompare(b.path);
+    });
+
+  // First pass: create directory entries
+  sortedItems.forEach(item => {
+    const parts = item.path.split('/');
+    let currentPath = '';
+    
+    parts.forEach((part, index) => {
+      const newPath = currentPath ? `${currentPath}/${part}` : part;
+      // Skip if this path should be excluded
+      if (!excludePatterns.some(pattern => pattern.test(newPath))) {
+        if (!dirStructure.has(newPath)) {
+          dirStructure.set(newPath, {
+            name: part,
+            type: item.type,
+            depth: index,
+            path: newPath,
+            children: new Set()
+          });
+        }
+        if (currentPath && dirStructure.has(currentPath)) {
+          dirStructure.get(currentPath).children.add(newPath);
+        }
+      }
+      currentPath = newPath;
+    });
+  });
+
+  // Function to build the tree string
+  function buildTreeString(path, isLast, prefix = '') {
+    const item = dirStructure.get(path);
+    if (!item) return '';
+
+    let result = '';
+    const connector = isLast ? '└── ' : '├── ';
+    const childPrefix = isLast ? '    ' : '│   ';
+    
+    // Add current item
+    result += `${prefix}${connector}${item.name}${item.type === 'tree' ? '/' : ''}\n`;
+
+    // Add children
+    const children = Array.from(item.children);
+    children.forEach((childPath, index) => {
+      result += buildTreeString(
+        childPath,
+        index === children.length - 1,
+        prefix + childPrefix
+      );
+    });
+
+    return result;
+  }
+
+  // Generate the final string
+  const rootName = `${owner}-${repo}`;
+  let structure = 'Directory structure:\n';
+  structure += `${rootName}/\n`;
+
+  // Get root level items
+  const rootItems = Array.from(dirStructure.values())
+    .filter(item => item.depth === 0)
+    .map(item => item.path);
+
+  // Build the tree for each root item
+  rootItems.forEach((path, index) => {
+    structure += buildTreeString(path, index === rootItems.length - 1);
+  });
+
+  return structure;
+}
+
+const GitHubRepoSelector = ({ onSelect, selectedRepo, darkMode, onRepoSelect }) => {
   const [repos, setRepos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -177,9 +312,18 @@ const GitHubRepoSelector = ({ onSelect, selectedRepo, darkMode, sendMessage }) =
   const handleRepoSelect = async (repoFullName) => {
     onSelect(repoFullName);
     
-    // Send only the repository URL to agent zero
     if (repoFullName) {
-      await sendMessage(`https://github.com/${repoFullName}`);
+      const repoUrl = `https://github.com/${repoFullName}`;
+      try {
+        // Get repository structure
+        const structure = await getRepoStructure(repoUrl);
+        // Pass both URL and structure to parent
+        onRepoSelect(`${repoUrl}\n\n${structure}`);
+      } catch (error) {
+        console.error('Error getting repo structure:', error);
+        // If structure fetch fails, just pass the URL
+        onRepoSelect(repoUrl);
+      }
     }
   };
 
@@ -195,7 +339,7 @@ const GitHubRepoSelector = ({ onSelect, selectedRepo, darkMode, sendMessage }) =
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  return (
+    return (
     <div className={`rounded-2xl p-6 shadow-lg border mb-4 relative overflow-visible
       ${darkMode ? 'bg-gray-800/90 border-gray-700' : 'bg-white border-gray-200'}`}>
       {/* Decorative Background Elements */}
@@ -212,7 +356,7 @@ const GitHubRepoSelector = ({ onSelect, selectedRepo, darkMode, sendMessage }) =
               <FaGithub className={`h-6 w-6 ${
                 darkMode ? 'text-gray-300' : 'text-gray-700'
               }`} />
-            </div>
+        </div>
             <div>
               <h2 className={`text-xl font-bold ${
                 darkMode ? 'text-gray-100' : 'text-gray-900'
@@ -243,7 +387,7 @@ const GitHubRepoSelector = ({ onSelect, selectedRepo, darkMode, sendMessage }) =
               <span className="font-medium">{loading ? 'Connecting...' : 'Connect GitHub'}</span>
             </motion.button>
           )}
-        </div>
+            </div>
 
         {/* Error Message */}
         {error && (
@@ -268,7 +412,7 @@ const GitHubRepoSelector = ({ onSelect, selectedRepo, darkMode, sendMessage }) =
             <div className={`relative ${isOpen ? 'z-50' : 'z-0'}`}>
               <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-colors duration-200 ${
+                className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-colors ${
                   darkMode
                     ? 'bg-gray-700 border-gray-600 hover:border-gray-500 text-gray-200'
                     : 'bg-white border-gray-300 hover:border-gray-400 text-gray-800'
@@ -349,11 +493,11 @@ const GitHubRepoSelector = ({ onSelect, selectedRepo, darkMode, sendMessage }) =
                 </motion.div>
               )}
             </div>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
 };
 
 const AIAssignment = () => {
@@ -364,6 +508,7 @@ const AIAssignment = () => {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const outputRef = useRef(null);
   const [selectedRepo, setSelectedRepo] = useState('');
+  const [expandedCheckpoints, setExpandedCheckpoints] = useState({});
 
   // Use the useChat hook for bot functionality
   const {
@@ -407,7 +552,7 @@ const AIAssignment = () => {
       try {
         // First, check if it's a GitHub URL
         if (typeof content === 'string' && content.startsWith('https://github.com/')) {
-          return (
+        return (
             <div className={`rounded-lg p-4 ${
               darkMode ? 'bg-gray-800' : 'bg-blue-50'
             } border ${
@@ -433,10 +578,10 @@ const AIAssignment = () => {
                   {content.replace('https://github.com/', '')}
                 </a>
               </div>
-            </div>
-          );
-        }
-
+          </div>
+        );
+      }
+    
         // Check if content is JSON
         if (content.startsWith('```json')) {
           const jsonContent = content.replace(/```json\n|\n```/g, '');
@@ -444,15 +589,14 @@ const AIAssignment = () => {
           
           if (parsed.thoughts) {
             // Enhanced UI for agent thoughts and response
-            return (
-              <div className="space-y-4">
+      return (
+        <div className="space-y-4">
                 {/* Main Response Box */}
                 <div className={`rounded-xl p-6 ${
                   darkMode 
                     ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700' 
                     : 'bg-gradient-to-br from-white to-gray-50 border border-gray-200'
-                } shadow-lg relative overflow-hidden`}>
-                  {/* Decorative Elements */}
+                } shadow-lg relative overflow-hidden`}>                  {/* Decorative Elements */}
                   <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/5 rounded-full -mr-20 -mt-20 transform rotate-45"></div>
                   <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/5 rounded-full -ml-16 -mb-16"></div>
                   
@@ -502,10 +646,10 @@ const AIAssignment = () => {
                           }`}>
                             {thought}
                           </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
                 </details>
               </div>
             );
@@ -536,10 +680,10 @@ const AIAssignment = () => {
                       <span className="text-sm">
                         {typeof item === 'string' ? item : JSON.stringify(item)}
                       </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
             );
           }
           
@@ -649,11 +793,11 @@ const AIAssignment = () => {
               </div>
             )}
             {formatContent(message.content)}
-          </div>
-        );
+        </div>
+      );
 
       case 'user':
-        return (
+    return (
           <div className="flex justify-end mb-6">
             <div className={`max-w-[80%] p-4 rounded-xl shadow-lg ${
               darkMode 
@@ -682,23 +826,40 @@ const AIAssignment = () => {
   
     setSubmitting(true);
     try {
-      // Include repository context in the message
-      const messageWithContext = {
-        text: solution,
-        repository: selectedRepo,
-      };
+      // Extract GitHub repository URL from the solution text
+      const solutionText = solution.trim();
+      const githubUrlMatch = solutionText.match(/(https:\/\/github\.com\/[^\s]+)/);
       
-      // Send the solution using the useChat hook
-      await sendMessage(JSON.stringify(messageWithContext));
+      if (!githubUrlMatch) {
+        throw new Error('No valid GitHub repository URL found in the solution');
+      }
+
+      const githubUrl = githubUrlMatch[1];
+      
+      // Send only the GitHub URL directly
+      await sendMessage(githubUrl);
       
       // Clear solution after submission
       setSolution('');
     } catch (error) {
       console.error('Error:', error);
+      // Show error to the user
+      setError(error.message || 'Failed to submit solution');
     } finally {
       setSubmitting(false);
     }
-  }, [isConnected, sendMessage, solution, selectedRepo]);
+  }, [isConnected, sendMessage, solution]);
+
+  const toggleCheckpoints = (assignmentId) => {
+    setExpandedCheckpoints(prev => ({
+      ...prev,
+      [assignmentId]: !prev[assignmentId]
+    }));
+  };
+
+  const handleRepoSelect = (repoUrlAndStructure) => {
+    setSolution(repoUrlAndStructure);
+  };
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
@@ -711,7 +872,7 @@ const AIAssignment = () => {
               onSelect={setSelectedRepo}
               selectedRepo={selectedRepo}
               darkMode={darkMode}
-              sendMessage={sendMessage}
+              onRepoSelect={handleRepoSelect}
             />
             
             {/* Bot Output Card */}
@@ -727,12 +888,12 @@ const AIAssignment = () => {
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${darkMode
                         ? 'bg-gradient-to-br from-blue-600 to-indigo-700 text-white'
                         : 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white'
-                      }`}>
+                    }`}>
                       <MdOutlineSmartToy className="h-6 w-6" />
                     </div>
                     <h2 className={`text-xl font-bold ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
                       AI Assignment Assistant
-                    </h2>
+                  </h2>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className={`px-3 py-1.5 rounded-full text-sm flex items-center space-x-2 transition-all duration-300 ${isConnected
@@ -753,7 +914,7 @@ const AIAssignment = () => {
               <div className="relative">
                 <div className={`h-[500px] overflow-y-auto p-4 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'
                   }`} ref={outputRef}>
-                  <ErrorBoundary>
+                <ErrorBoundary>
                     {messages.length === 0 ? (
                       <div className="h-full flex flex-col items-center justify-center">
                         <div className={`w-16 h-16 mb-4 rounded-full flex items-center justify-center ${darkMode
@@ -771,30 +932,30 @@ const AIAssignment = () => {
                       </div>
                     ) : (
                       messages.map((message) => (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.3 }}
                           key={message.no}
                         >
-                          {renderAIResponse(message)}
-                        </motion.div>
+                        {renderAIResponse(message)}
+                    </motion.div>
                       ))
                     )}
-                  </ErrorBoundary>
+                </ErrorBoundary>
 
                   {/* Progress Bar */}
                   {logProgressActive && (
                     <div className={`w-full rounded-full h-2 overflow-hidden mt-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'
                       }`}>
-                      <motion.div
+                          <motion.div
                         className={`h-2 rounded-full ${darkMode ? 'bg-blue-500' : 'bg-blue-600'
                           }`}
                         initial={{ width: 0 }}
                         animate={{ width: `${logProgress}%` }}
                         transition={{ duration: 0.3 }}
                       />
-                    </div>
+                      </div>
                   )}
 
                   {/* Error Message */}
@@ -811,10 +972,10 @@ const AIAssignment = () => {
                       <div className="flex items-center space-x-2">
                         <MdError className="w-5 h-5 flex-shrink-0" />
                         <span>{error}</span>
-                      </div>
-                    </motion.div>
-                  )}
-                </div>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
 
                 {/* Scroll to Bottom Button */}
                 {showScrollButton && (
@@ -880,27 +1041,112 @@ const AIAssignment = () => {
               <h2 className={`text-xl font-bold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
                 Current Assignment
               </h2>
-              {selectedAssignment ? (
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-blue-600">
+              
+              <div className="space-y-4">
+                <select
+                  value={selectedAssignment?.id || ''}
+                  onChange={(e) => {
+                    const assignment = assignments.find(a => a.id === e.target.value);
+                    setSelectedAssignment(assignment);
+                  }}
+                  className={`w-full p-3 rounded-xl border transition-colors
+                    ${darkMode
+                      ? 'bg-gray-700 border-gray-600 text-gray-100 focus:border-blue-500'
+                      : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
+                    } focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                >
+                  <option value="">Select an assignment</option>
+                  {assignments.map(assignment => (
+                    <option key={assignment.id} value={assignment.id}>
+                      {assignment.title}
+                    </option>
+                  ))}
+                </select>
+
+                {selectedAssignment && (
+                  <div className="space-y-4">
+                    <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                      <h3 className={`text-lg font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                     {selectedAssignment.title}
                   </h3>
-                  <p className={darkMode ? 'text-gray-300' : 'text-gray-600'}>
+                      <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     {selectedAssignment.description}
                   </p>
-                  <div className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                    <span className="text-sm font-medium">
-                      Estimated Time: {selectedAssignment.estimatedTime}
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          darkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {selectedAssignment.estimatedTime}
+                        </span>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          darkMode ? 'bg-purple-900/30 text-purple-400' : 'bg-purple-100 text-purple-800'
+                        }`}>
+                          {selectedAssignment.difficulty}
                     </span>
                   </div>
                 </div>
-              ) : (
-                <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                  <p className="text-center text-gray-500">
-                    No assignment selected
-                  </p>
+
+                    <div>
+                      <button
+                        onClick={() => toggleCheckpoints(selectedAssignment.id)}
+                        className={`w-full flex items-center justify-between p-3 rounded-lg ${
+                          darkMode ? 'bg-gray-700/30 text-white' : 'bg-gray-50 text-gray-900'
+                        } transition-colors duration-200`}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <FaCheck className={`${darkMode ? 'text-green-400' : 'text-green-600'}`} />
+                          <span className="font-medium">Checkpoints</span>
+                        </div>
+                        <FaChevronDown
+                          className={`transform transition-transform duration-200 ${
+                            expandedCheckpoints[selectedAssignment.id] ? 'rotate-180' : ''
+                          }`}
+                        />
+                      </button>
+
+                      {expandedCheckpoints[selectedAssignment.id] && (
+                        <div className="mt-3 space-y-3">
+                          {selectedAssignment.checkpoints.map((checkpoint) => (
+                            <div
+                              key={checkpoint.id}
+                              className={`p-3 rounded-lg ${
+                                darkMode 
+                                  ? 'bg-gray-700/30 border border-gray-600/30' 
+                                  : 'bg-gray-50 border border-gray-200'
+                              } overflow-hidden`}
+                            >
+                              <div className="flex items-start space-x-3">
+                                <div className={`p-1 rounded-full ${
+                                  darkMode ? 'bg-blue-500/20' : 'bg-blue-100'
+                                } flex-shrink-0`}>
+                                  <FaCode className={`text-sm ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'} truncate`}>
+                                    {checkpoint.title}
+                                  </h4>
+                                  <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'} break-words`}>
+                                    {checkpoint.description}
+                                  </p>
+                                  {checkpoint.command && (
+                                    <div className={`mt-2 p-2 rounded-md text-xs font-mono ${
+                                      darkMode 
+                                        ? 'bg-gray-900 text-gray-300' 
+                                        : 'bg-gray-100 text-gray-700'
+                                    } break-words whitespace-pre-wrap overflow-x-auto`}>
+                                      {checkpoint.command}
                 </div>
               )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Solution Editor Card */}
@@ -951,7 +1197,7 @@ const AIAssignment = () => {
                 </motion.button>
               </div>
             </div>
-          </motion.div>
+                  </motion.div>
         </div>
       </div>
     </div>
@@ -959,3 +1205,4 @@ const AIAssignment = () => {
 };
 
 export default AIAssignment;
+
