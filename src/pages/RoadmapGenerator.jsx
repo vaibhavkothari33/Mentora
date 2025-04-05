@@ -355,13 +355,6 @@ const RoadmapGenerator = () => {
               </p>
             </div>
             <div className="flex items-center gap-4">
-              <button 
-                onClick={toggleTheme}
-                className="p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition-all duration-300 backdrop-blur-sm border border-white/20 shadow-lg"
-                aria-label="Toggle theme"
-              >
-                {theme.darkMode ? '🌙' : '☀️'}
-              </button>
             </div>
           </div>
         </div>
