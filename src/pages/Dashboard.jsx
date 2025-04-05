@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import { FaGraduationCap, FaCertificate, FaChartLine, FaTrophy, FaClock, FaStar, FaPlay, FaCheck, FaLock, FaExpand, FaPause, FaVolumeMute, FaVolumeUp } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
+import ipfsService from '../utils/ipfsStorage';
 
 const VideoPlayer = ({ videoUrl, title }) => {
   const videoRef = useRef(null);
@@ -12,19 +13,37 @@ const VideoPlayer = ({ videoUrl, title }) => {
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [error, setError] = useState(null);
   const { theme } = useTheme();
+
+  // Convert IPFS URL to HTTP URL if needed
+  const getVideoUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('ipfs://')) {
+      const cid = url.replace('ipfs://', '');
+      return `https://${cid}.ipfs.w3s.link`;
+    }
+    return url;
+  };
 
   useEffect(() => {
     const video = videoRef.current;
     if (video) {
       video.addEventListener('timeupdate', handleTimeUpdate);
       video.addEventListener('loadedmetadata', handleLoadMetadata);
+      video.addEventListener('error', handleVideoError);
       return () => {
         video.removeEventListener('timeupdate', handleTimeUpdate);
         video.removeEventListener('loadedmetadata', handleLoadMetadata);
+        video.removeEventListener('error', handleVideoError);
       };
     }
   }, []);
+
+  const handleVideoError = (e) => {
+    console.error('Video error:', e);
+    setError('Error loading video. Please try again later.');
+  };
 
   const handleTimeUpdate = () => {
     const video = videoRef.current;
@@ -97,10 +116,29 @@ const VideoPlayer = ({ videoUrl, title }) => {
       <div className="aspect-w-16 aspect-h-9 bg-black rounded-lg overflow-hidden">
         <video
           ref={videoRef}
-          src={videoUrl}
+          src={getVideoUrl(videoUrl)}
           className="w-full h-full object-contain"
           playsInline
         />
+        
+        {error && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+            <div className="text-white text-center p-4">
+              <p className="text-red-500 mb-2">{error}</p>
+              <button 
+                onClick={() => {
+                  setError(null);
+                  if (videoRef.current) {
+                    videoRef.current.load();
+                  }
+                }}
+                className="px-4 py-2 bg-blue-500 rounded hover:bg-blue-600 transition"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
         
         {/* Video Controls Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">

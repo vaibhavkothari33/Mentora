@@ -4,7 +4,7 @@ import { FaSpinner, FaUpload, FaPlus, FaTrash } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
 import { useEduChain } from '../hooks/useEduChain';
 import { ethers } from 'ethers';
-import { uploadFile, uploadJSON } from '../utils/web3storage';
+import ipfsService from '../utils/ipfsStorage';
 
 const CreateCourse = () => {
   const { theme } = useTheme();
@@ -157,7 +157,10 @@ const CreateCourse = () => {
       if (formData.thumbnail) {
         setUploadProgress(10);
         console.log('Uploading thumbnail...');
-        thumbnailUrl = await uploadFile(formData.thumbnail);
+        const thumbnailHash = await ipfsService.uploadFile(formData.thumbnail, (progress) => {
+          setUploadProgress(10 + (progress * 0.2)); // 10-30%
+        });
+        thumbnailUrl = ipfsService.getIPFSUrl(thumbnailHash);
       }
 
       // Upload sections content
@@ -173,15 +176,24 @@ const CreateCourse = () => {
 
           if (section.video) {
             console.log(`Uploading video for section ${index + 1}...`);
-            sectionData.videoHash = await uploadFile(section.video);
+            const videoHash = await ipfsService.uploadVideo(section.video, (progress) => {
+              const sectionProgress = 30 + ((index + progress/100) / formData.sections.length) * 40;
+              setUploadProgress(sectionProgress);
+            });
+            sectionData.videoHash = videoHash;
+            sectionData.videoUrl = ipfsService.getIPFSUrl(videoHash);
           }
 
           if (section.materials) {
             console.log(`Uploading materials for section ${index + 1}...`);
-            sectionData.materialHash = await uploadFile(section.materials);
+            const materialsHash = await ipfsService.uploadFile(section.materials, (progress) => {
+              const sectionProgress = 30 + ((index + 0.5 + progress/100) / formData.sections.length) * 40;
+              setUploadProgress(sectionProgress);
+            });
+            sectionData.materialHash = materialsHash;
+            sectionData.materialUrl = ipfsService.getIPFSUrl(materialsHash);
           }
 
-          setUploadProgress(30 + ((index + 1) / formData.sections.length) * 40);
           return sectionData;
         })
       );
@@ -203,7 +215,7 @@ const CreateCourse = () => {
       };
 
       console.log('Uploading metadata to IPFS...');
-      const metadataUrl = await uploadJSON(metadata);
+      const metadataHash = await ipfsService.uploadJSON(metadata);
       setUploadProgress(90);
 
       // Create course on blockchain
@@ -212,7 +224,7 @@ const CreateCourse = () => {
         title: formData.title,
         description: formData.description,
         price: ethers.parseEther(formData.price),
-        contentURI: metadataUrl,
+        contentURI: metadataHash,
         sections: sectionsWithHashes.map(section => ({
           title: section.title,
           description: section.description,
