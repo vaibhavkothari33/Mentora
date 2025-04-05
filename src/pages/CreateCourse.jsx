@@ -29,7 +29,8 @@ const CreateCourse = () => {
         materials: null,
         duration: 0,
         videoName: '',
-        materialsName: ''
+        materialsName: '',
+        videoUrl: null
       }
     ],
     thumbnail: null,
@@ -44,14 +45,11 @@ const CreateCourse = () => {
     }));
   };
 
-  const handleFileChange = (e, field, sectionIndex = null) => {
+  const handleFileChange = async (e, field, sectionIndex = null) => {
     const file = e.target.files[0];
     if (!file) return;
-  
+
     try {
-      // Assume validateFile is defined elsewhere
-      // validateFile(file);
-      
       if (field === 'thumbnail') {
         const reader = new FileReader();
         reader.onload = () => {
@@ -65,18 +63,41 @@ const CreateCourse = () => {
           thumbnailName: file.name
         }));
       } else if (sectionIndex !== null) {
-        setFormData(prev => ({
-          ...prev,
-          sections: prev.sections.map((section, idx) =>
-            idx === sectionIndex ? { 
-              ...section, 
-              [field]: file,
-              [`${field}Name`]: file.name 
-            } : section
-          )
-        }));
+        if (field === 'video') {
+          if (!file.type.startsWith('video/')) {
+            throw new Error('Please select a valid video file');
+          }
+
+          const videoUrl = URL.createObjectURL(file);
+          
+          const updatedSections = [...formData.sections];
+          updatedSections[sectionIndex] = {
+            ...updatedSections[sectionIndex],
+            video: file,
+            videoName: file.name,
+            videoUrl: videoUrl
+          };
+
+          setFormData(prev => ({
+            ...prev,
+            sections: updatedSections
+          }));
+
+        } else if (field === 'materials') {
+          setFormData(prev => ({
+            ...prev,
+            sections: prev.sections.map((section, idx) =>
+              idx === sectionIndex ? { 
+                ...section, 
+                materials: file,
+                materialsName: file.name
+              } : section
+            )
+          }));
+        }
       }
     } catch (err) {
+      console.error('Error handling file:', err);
       setError(err.message);
     }
   };
@@ -140,6 +161,29 @@ const CreateCourse = () => {
     }
   };
 
+  const uploadToIPFS = async (file, type) => {
+    try {
+      let hash;
+      if (type === 'image') {
+        hash = await ipfsService.uploadFile(file, (progress) => {
+          setUploadProgress(progress);
+        });
+      } else if (type === 'video') {
+        hash = await ipfsService.uploadVideo(file, (progress) => {
+          setUploadProgress(progress);
+        });
+      } else if (type === 'file') {
+        hash = await ipfsService.uploadFile(file, (progress) => {
+          setUploadProgress(progress);
+        });
+      }
+      return hash;
+    } catch (error) {
+      console.error('Error uploading to IPFS:', error);
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -147,27 +191,15 @@ const CreateCourse = () => {
     setUploadProgress(0);
 
     try {
-      // Validate form data
-      if (!formData.title || !formData.description || !formData.price) {
-        throw new Error('Please fill in all required fields');
-      }
-
-      // Upload thumbnail
-      let thumbnailUrl = '';
+      // Upload thumbnail first
+      let thumbnailHash;
       if (formData.thumbnail) {
-        setUploadProgress(10);
-        console.log('Uploading thumbnail...');
-        const thumbnailHash = await ipfsService.uploadFile(formData.thumbnail, (progress) => {
-          setUploadProgress(10 + (progress * 0.2)); // 10-30%
-        });
-        thumbnailUrl = ipfsService.getIPFSUrl(thumbnailHash);
+        thumbnailHash = await uploadToIPFS(formData.thumbnail, 'image');
       }
 
-      // Upload sections content
-      setUploadProgress(30);
-      console.log('Uploading section content...');
+      // Upload all section content to IPFS
       const sectionsWithHashes = await Promise.all(
-        formData.sections.map(async (section, index) => {
+        formData.sections.map(async (section) => {
           const sectionData = {
             title: section.title,
             description: section.description,
@@ -175,37 +207,25 @@ const CreateCourse = () => {
           };
 
           if (section.video) {
-            console.log(`Uploading video for section ${index + 1}...`);
-            const videoHash = await ipfsService.uploadVideo(section.video, (progress) => {
-              const sectionProgress = 30 + ((index + progress/100) / formData.sections.length) * 40;
-              setUploadProgress(sectionProgress);
-            });
-            sectionData.videoHash = videoHash;
-            sectionData.videoUrl = ipfsService.getIPFSUrl(videoHash);
+            const videoHash = await uploadToIPFS(section.video, 'video');
+            sectionData.videoURI = videoHash;
           }
 
           if (section.materials) {
-            console.log(`Uploading materials for section ${index + 1}...`);
-            const materialsHash = await ipfsService.uploadFile(section.materials, (progress) => {
-              const sectionProgress = 30 + ((index + 0.5 + progress/100) / formData.sections.length) * 40;
-              setUploadProgress(sectionProgress);
-            });
-            sectionData.materialHash = materialsHash;
-            sectionData.materialUrl = ipfsService.getIPFSUrl(materialsHash);
+            const materialHash = await uploadToIPFS(section.materials, 'file');
+            sectionData.materialURI = materialHash;
           }
 
           return sectionData;
         })
       );
 
-      // Create and upload metadata
-      setUploadProgress(80);
-      console.log('Creating course metadata...');
+      // Create course metadata
       const metadata = {
         title: formData.title,
         description: formData.description,
         price: formData.price,
-        thumbnail: thumbnailUrl,
+        thumbnail: thumbnailHash,
         category: formData.category,
         difficulty: formData.difficulty,
         sections: sectionsWithHashes,
@@ -214,28 +234,16 @@ const CreateCourse = () => {
         version: "1.0"
       };
 
-      console.log('Uploading metadata to IPFS...');
+      // Upload metadata to IPFS
       const metadataHash = await ipfsService.uploadJSON(metadata);
-      setUploadProgress(90);
 
       // Create course on blockchain
-      console.log('Creating course on blockchain...');
-      const tx = await createCourse({
-        title: formData.title,
-        description: formData.description,
-        price: ethers.parseEther(formData.price),
+      await handleCreateCourse({
+        ...formData,
         contentURI: metadataHash,
-        sections: sectionsWithHashes.map(section => ({
-          title: section.title,
-          description: section.description,
-          videoURI: section.videoHash || '',
-          materialURI: section.materialHash || '',
-          duration: section.duration
-        }))
+        sections: sectionsWithHashes
       });
 
-      await tx.wait();
-      setUploadProgress(100);
       alert('Course created successfully!');
       navigate('/courses');
 
@@ -246,6 +254,58 @@ const CreateCourse = () => {
       setLoading(false);
     }
   };
+
+  const renderVideoUpload = (section, index) => (
+    <div>
+      <label className="block text-sm font-medium mb-1">Video</label>
+      <div className={`border-2 border-dashed rounded-md p-3 ${theme.borderColor} hover:border-blue-400 transition duration-300`}>
+        <div className="flex items-center justify-center">
+          <label className="cursor-pointer flex items-center gap-2 w-full">
+            <FaUpload className="text-gray-400" />
+            <span className={`${section.videoName ? '' : 'text-gray-400'} truncate`}>
+              {section.videoName || 'Upload Video'}
+            </span>
+            <input
+              type="file"
+              accept="video/*"
+              onChange={(e) => handleFileChange(e, 'video', index)}
+              className="hidden"
+            />
+          </label>
+        </div>
+        {section.videoUrl && (
+          <div className="mt-2">
+            <video 
+              src={section.videoUrl} 
+              controls 
+              className="w-full rounded-md"
+              style={{ maxHeight: '200px' }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                URL.revokeObjectURL(section.videoUrl);
+                setFormData(prev => ({
+                  ...prev,
+                  sections: prev.sections.map((s, idx) =>
+                    idx === index ? {
+                      ...s,
+                      video: null,
+                      videoName: '',
+                      videoUrl: null
+                    } : s
+                  )
+                }));
+              }}
+              className="mt-2 text-red-500 hover:text-red-700"
+            >
+              Remove Video
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className={`min-h-screen ${theme.background} ${theme.text.primary} py-12 px-4 sm:px-6 lg:px-8`}>
@@ -472,7 +532,7 @@ const CreateCourse = () => {
                       type="text"
                       value={section.title}
                       onChange={(e) => updateSectionField(index, 'title', e.target.value)}
-                      className={`w-full rounded-md border p-2  text-black`}
+                      className={`w-full rounded-md border p-2 text-black`}
                       placeholder="E.g., Introduction to the Course"
                       required
                     />
@@ -483,31 +543,13 @@ const CreateCourse = () => {
                     <textarea
                       value={section.description || ''}
                       onChange={(e) => updateSectionField(index, 'description', e.target.value)}
-                      className={`w-full rounded-md border p-2  text-black`}
+                      className={`w-full rounded-md border p-2 text-black`}
                       rows="2"
                       placeholder="What will students learn in this section?"
                     />
                   </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Video</label>
-                    <div className={`border-2 border-dashed rounded-md p-3 ${theme.borderColor} hover:border-blue-400 transition duration-300`}>
-                      <div className="flex items-center justify-center">
-                        <label className="cursor-pointer flex items-center gap-2 w-full">
-                          <FaUpload className="text-gray-400" />
-                          <span className={`${section.videoName ? '' : 'text-gray-400'} truncate`}>
-                            {section.videoName || 'Upload Video'}
-                          </span>
-                          <input
-                            type="file"
-                            accept="video/*"
-                            onChange={(e) => handleFileChange(e, 'video', index)}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-                    </div>
-                  </div>
+                  {renderVideoUpload(section, index)}
                   
                   <div>
                     <label className="block text-sm font-medium mb-1">Duration (minutes)</label>
@@ -515,7 +557,7 @@ const CreateCourse = () => {
                       type="number"
                       value={section.duration || ''}
                       onChange={(e) => updateSectionField(index, 'duration', Number(e.target.value))}
-                      className={`w-full rounded-md border p-2  text-black`}
+                      className={`w-full rounded-md border p-2 text-black`}
                       placeholder="0"
                       min="0"
                     />
