@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { FaGraduationCap, FaEthereum, FaUserGraduate, FaBookOpen, FaClock, FaStar } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
 import { Link } from 'react-router-dom';
-import { useCourseMarketplace } from '../hooks/useCourseMarketplace';
+import { useMentoraContract } from '../hooks/useMentoraContract';
 import { ethers } from 'ethers';
 
 const Courses = () => {
@@ -11,7 +11,7 @@ const Courses = () => {
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
   const { theme } = useTheme();
-  const { getClient } = useCourseMarketplace();
+  const { getClient } = useMentoraContract();
 
   useEffect(() => {
     const fetchCourses = async () => {

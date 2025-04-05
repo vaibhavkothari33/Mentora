@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { FaEthereum } from 'react-icons/fa';
-import { useCourseMarketplace } from '../hooks/useCourseMarketplace';
+import { useMentoraContract } from '../hooks/useMentoraContract';
 
 const WalletConnect = ({ onConnect }) => {
   const [account, setAccount] = useState('');
   const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState(false);
-  const { initialize, error: clientError } = useCourseMarketplace();
+  const { initialize, error: clientError } = useMentoraContract();
 
   useEffect(() => {
     checkMetaMaskInstallation();

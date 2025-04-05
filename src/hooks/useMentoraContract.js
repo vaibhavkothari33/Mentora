@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CourseMarketplaceClient } from '../utils/blockchain';
+import { CourseMarketplaceClient } from '../utils/mentoraBlockchain';
 
 /**
  * Custom hook for managing the CourseMarketplace client
  * @returns {Object} Client instance and utility functions
  */
-export const useCourseMarketplace = () => {
+export const useMentoraContract = () => {
   const [client, setClient] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState(null);
