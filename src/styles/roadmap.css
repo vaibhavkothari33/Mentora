@@ -1,0 +1,20 @@
+/* src/styles/roadmap.css */
+.react-flow__node {
+    @apply transition-transform duration-200;
+  }
+  
+  .react-flow__node:hover {
+    @apply transform scale-105;
+  }
+  
+  .react-flow__edge {
+    @apply transition-opacity duration-200;
+  }
+  
+  .react-flow__edge:hover {
+    @apply opacity-100;
+  }
+  
+  .react-flow__handle {
+    @apply w-3 h-3;
+  }
