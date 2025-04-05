@@ -1,6 +1,4 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { ethers } from 'ethers';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import Courses from './pages/Courses';
@@ -14,41 +12,10 @@ import AIAssignment from './pages/AIAssignment';
 import Contact from './pages/Contact';
 import Assignments from './pages/Assignments';
 import Profile from './pages/Profile';
-// import { EduChainABI, CertificateNFTABI } from './contracts/abis';
-// import { EduChainAddress, CertificateNFTAddress } from './contracts/addresses';
 import { ThemeProvider } from './context/ThemeContext';
+import FAQ from './pages/FAQ';
 
 function App() {
-  const [provider, setProvider] = useState(null);
-  const [eduChain, setEduChain] = useState(null);
-  const [certificateNFT, setCertificateNFT] = useState(null);
-
-  useEffect(() => {
-    const init = async () => {
-      if (window.ethereum) {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        setProvider(provider);
-
-        // const signer = await provider.getSigner();
-
-        // const eduChainContract = new ethers.Contract(
-        //   EduChainAddress,
-        //   EduChainABI,
-        //   signer
-        // );
-        // setEduChain(eduChainContract);
-
-        // const certificateNFTContract = new ethers.Contract(
-        //   CertificateNFTAddress,
-        //   CertificateNFTABI,
-        //   signer
-        // );
-        // setCertificateNFT(certificateNFTContract);
-      }
-    };
-
-    init();
-  }, []);
 
   return (
     <ThemeProvider>
@@ -63,6 +30,7 @@ function App() {
             <Route path="roadmap" element={<RoadmapGenerator />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="faq" element={<FAQ/>} />
             <Route path="create-course" element={<CreateCourse />} />
             <Route path="about" element={<About />} />
             <Route path="ai-assignment" element={<AIAssignment />} />

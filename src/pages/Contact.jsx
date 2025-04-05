@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { motion } from 'framer-motion';
 import axios from 'axios';
+import { FaEnvelope, FaDiscord, FaTwitter } from 'react-icons/fa';
 
 const Contact = () => {
   const { darkMode } = useTheme();
@@ -83,89 +84,70 @@ const Contact = () => {
         />
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-12 relative z-10">
-        <h1 className={`text-4xl font-bold mb-8 text-center ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-          Contact Us
-        </h1>
-        
-        <div className={`p-6 rounded-lg shadow-lg backdrop-blur-sm ${darkMode ? 'bg-gray-800/90' : 'bg-white/90'}`}>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="name" className="block mb-2 font-medium">
-                Name
-              </label>
+      <div className="max-w-4xl mx-auto px-4 py-16">
+        <h1 className="text-4xl font-bold mb-8">Contact Us</h1>
+        <div className="grid md:grid-cols-2 gap-8">
+          <div className="space-y-6">
+            <div className="flex items-center space-x-4">
+              <FaEnvelope className="text-2xl text-blue-500" />
+              <div>
+                <h2 className="text-xl font-semibold">Email</h2>
+                <p className={darkMode ? 'text-gray-300' : 'text-gray-600'}>support@mentora.com</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <FaDiscord className="text-2xl text-purple-500" />
+              <div>
+                <h2 className="text-xl font-semibold">Discord</h2>
+                <p className={darkMode ? 'text-gray-300' : 'text-gray-600'}>Join our community</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <FaTwitter className="text-2xl text-blue-400" />
+              <div>
+                <h2 className="text-xl font-semibold">Twitter</h2>
+                <p className={darkMode ? 'text-gray-300' : 'text-gray-600'}>Follow us @mentora</p>
+              </div>
+            </div>
+          </div>
+          <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
+            <h2 className="text-xl font-semibold mb-4">Send us a message</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
               <input
                 type="text"
-                id="name"
+                placeholder="Name"
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                required
-                className={`w-full px-4 py-2 rounded-md focus:outline-none focus:ring-2 ${
-                  darkMode 
-                    ? 'bg-gray-700 text-white focus:ring-blue-400' 
-                    : 'bg-gray-50 text-gray-900 focus:ring-blue-500'
-                }`}
+                className={`w-full p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'} border ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}
               />
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block mb-2 font-medium">
-                Email
-              </label>
               <input
                 type="email"
-                id="email"
+                placeholder="Email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                required
-                className={`w-full px-4 py-2 rounded-md focus:outline-none focus:ring-2 ${
-                  darkMode 
-                    ? 'bg-gray-700 text-white focus:ring-blue-400' 
-                    : 'bg-gray-50 text-gray-900 focus:ring-blue-500'
-                }`}
+                className={`w-full p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'} border ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}
               />
-            </div>
-
-            <div>
-              <label htmlFor="message" className="block mb-2 font-medium">
-                Message
-              </label>
               <textarea
-                id="message"
+                placeholder="Message"
                 name="message"
                 value={formData.message}
                 onChange={handleChange}
-                required
-                rows="5"
-                className={`w-full px-4 py-2 rounded-md focus:outline-none focus:ring-2 ${
-                  darkMode 
-                    ? 'bg-gray-700 text-white focus:ring-blue-400' 
-                    : 'bg-gray-50 text-gray-900 focus:ring-blue-500'
+                rows="4"
+                className={`w-full p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'} border ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}
+              ></textarea>
+              <button
+                type="submit"
+                disabled={status === 'sending'}
+                className={`w-full py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors ${
+                  status === 'sending' ? 'bg-gray-500 cursor-not-allowed' : ''
                 }`}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={status === 'sending'}
-              className={`w-full py-3 px-6 rounded-md text-white font-medium transition-colors duration-200 ${
-                status === 'sending'
-                  ? 'bg-gray-500 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700'
-              }`}
-            >
-              {status === 'sending' ? 'Sending...' : 'Send Message'}
-            </button>
-
-            {status === 'success' && (
-              <p className="text-green-500 text-center">Message sent successfully!</p>
-            )}
-            {status === 'error' && (
-              <p className="text-red-500 text-center">Failed to send message. Please try again.</p>
-            )}
-          </form>
+              >
+                {status === 'sending' ? 'Sending...' : 'Send Message'}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </motion.div>
