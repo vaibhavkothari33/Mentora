@@ -4,7 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { useChat } from '../hooks/useAgent';
-import { FaSpinner, FaArrowDown, FaPaperPlane, FaClock, FaGithub } from 'react-icons/fa';
+import { FaSpinner, FaArrowDown, FaPaperPlane, FaGithub } from 'react-icons/fa';
 import { IoInformationCircle } from 'react-icons/io5';
 import { MdError, MdOutlineSmartToy } from 'react-icons/md';
 
@@ -50,6 +50,8 @@ const GitHubRepoSelector = ({ onSelect, selectedRepo, darkMode, sendMessage }) =
   const [repos, setRepos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     // Check if there's a code in the URL (GitHub callback)
@@ -133,25 +135,35 @@ const GitHubRepoSelector = ({ onSelect, selectedRepo, darkMode, sendMessage }) =
 
       const accessToken = tokenData.access_token;
 
-      // Fetch user's repositories
-      const reposResponse = await fetch('/api/user/repos', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Accept': 'application/vnd.github.v3+json',
-        },
-      });
+      // Fetch ALL repositories (update the fetch call)
+      const allRepos = [];
+      let page = 1;
+      let hasMore = true;
 
-      const reposData = await reposResponse.json();
-      
-      if (!Array.isArray(reposData)) {
-        throw new Error('Failed to fetch repositories');
+      while (hasMore) {
+        const reposResponse = await fetch(`/api/user/repos?page=${page}&per_page=100`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/vnd.github.v3+json',
+          },
+        });
+
+        const pageRepos = await reposResponse.json();
+        
+        if (pageRepos.length === 0) {
+          hasMore = false;
+        } else {
+          allRepos.push(...pageRepos);
+          page += 1;
+        }
       }
 
-      setRepos(reposData.map(repo => ({
+      setRepos(allRepos.map(repo => ({
         id: repo.id,
         full_name: repo.full_name,
         description: repo.description,
         private: repo.private,
+        updated_at: repo.updated_at,
       })));
 
       setLoading(false);
@@ -171,59 +183,175 @@ const GitHubRepoSelector = ({ onSelect, selectedRepo, darkMode, sendMessage }) =
     }
   };
 
+  // Add click outside handler
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
-    <div className={`rounded-xl p-6 shadow-lg border mb-4
-      ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className={`text-xl font-bold ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
-          GitHub Repository
-        </h2>
-        {!repos.length && (
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleGitHubAuth}
-            disabled={loading}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors
-              ${darkMode 
-                ? 'bg-gray-700 hover:bg-gray-600 text-white' 
-                : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
-              } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <FaGithub className="h-5 w-5" />
-            <span>{loading ? 'Connecting...' : 'Connect GitHub'}</span>
-          </motion.button>
-        )}
-      </div>
+    <div className={`rounded-2xl p-6 shadow-lg border mb-4 relative overflow-visible
+      ${darkMode ? 'bg-gray-800/90 border-gray-700' : 'bg-white border-gray-200'}`}>
+      {/* Decorative Background Elements */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-full -mr-32 -mt-32 transform rotate-45"></div>
+      <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-500/5 to-purple-500/5 rounded-full -ml-24 -mb-24"></div>
 
-      {error && (
-        <div className={`p-3 mb-4 rounded-lg text-sm ${
-          darkMode ? 'bg-red-900/30 text-red-300' : 'bg-red-50 text-red-600'
-        }`}>
-          {error}
+      <div className="relative z-10">
+        {/* Header Section */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className={`p-2 rounded-xl ${
+              darkMode ? 'bg-gray-700' : 'bg-gray-100'
+            }`}>
+              <FaGithub className={`h-6 w-6 ${
+                darkMode ? 'text-gray-300' : 'text-gray-700'
+              }`} />
+            </div>
+            <div>
+              <h2 className={`text-xl font-bold ${
+                darkMode ? 'text-gray-100' : 'text-gray-900'
+              }`}>
+                GitHub Repository
+              </h2>
+              <p className={`text-sm ${
+                darkMode ? 'text-gray-400' : 'text-gray-500'
+              }`}>
+                {repos.length ? `${repos.length} repositories available` : 'Connect to view your repositories'}
+              </p>
+            </div>
+          </div>
+
+          {!repos.length && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleGitHubAuth}
+              disabled={loading}
+              className={`flex items-center space-x-2 px-5 py-2.5 rounded-xl transition-all duration-200
+                ${darkMode 
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white' 
+                  : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                } ${loading ? 'opacity-50 cursor-not-allowed' : ''} shadow-lg hover:shadow-xl`}
+            >
+              <FaGithub className="h-5 w-5" />
+              <span className="font-medium">{loading ? 'Connecting...' : 'Connect GitHub'}</span>
+            </motion.button>
+          )}
         </div>
-      )}
 
-      {repos.length > 0 && (
-        <div className="space-y-2">
-          <select
-            value={selectedRepo}
-            onChange={(e) => handleRepoSelect(e.target.value)}
-            className={`w-full p-2 rounded-lg border ${
-              darkMode
-                ? 'bg-gray-700 border-gray-600 text-gray-200'
-                : 'bg-white border-gray-300 text-gray-800'
+        {/* Error Message */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`p-4 mb-4 rounded-xl text-sm flex items-center space-x-3 ${
+              darkMode ? 'bg-red-900/20 text-red-300 border border-red-800/30' : 'bg-red-50 text-red-600 border border-red-100'
             }`}
           >
-            <option value="">Select a repository</option>
-            {repos.map((repo) => (
-              <option key={repo.id} value={repo.full_name}>
-                {repo.full_name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+            <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="font-medium">{error}</span>
+          </motion.div>
+        )}
+
+        {/* Repository Selector */}
+        {repos.length > 0 && (
+          <div className="space-y-3" ref={dropdownRef}>
+            <div className={`relative ${isOpen ? 'z-50' : 'z-0'}`}>
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-colors duration-200 ${
+                  darkMode
+                    ? 'bg-gray-700 border-gray-600 hover:border-gray-500 text-gray-200'
+                    : 'bg-white border-gray-300 hover:border-gray-400 text-gray-800'
+                }`}
+              >
+                <span className="flex items-center space-x-3">
+                  <FaGithub className="h-5 w-5" />
+                  <span className="truncate">{selectedRepo || 'Select a repository'}</span>
+                </span>
+                <svg
+                  className={`w-5 h-5 transform transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Dropdown Menu with Fixed Height and Scroll */}
+              {isOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`absolute w-full mt-2 rounded-xl border shadow-lg overflow-hidden ${
+                    darkMode
+                      ? 'bg-gray-700 border-gray-600'
+                      : 'bg-white border-gray-200'
+                  }`}
+                  style={{ maxHeight: '400px' }} // Fixed height for dropdown
+                >
+                  <div className="overflow-y-auto h-full">
+                    {repos
+                      .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+                      .map((repo) => (
+                        <button
+                          key={repo.id}
+                          onClick={() => {
+                            handleRepoSelect(repo.full_name);
+                            setIsOpen(false);
+                          }}
+                          className={`w-full px-4 py-3 text-left flex items-center space-x-3 transition-colors
+                            ${darkMode
+                              ? 'hover:bg-gray-600 text-gray-200'
+                              : 'hover:bg-gray-50 text-gray-700'
+                            } ${repo.full_name === selectedRepo ? 
+                                (darkMode ? 'bg-gray-600' : 'bg-gray-100') 
+                                : ''
+                            }`}
+                        >
+                          <FaGithub className={`h-5 w-5 flex-shrink-0 ${
+                            repo.private 
+                              ? 'text-yellow-500' 
+                              : darkMode ? 'text-gray-400' : 'text-gray-500'
+                          }`} />
+                          <div className="flex-1 min-w-0">
+                            <div className="truncate font-medium">{repo.full_name}</div>
+                            {repo.description && (
+                              <div className={`text-sm truncate ${
+                                darkMode ? 'text-gray-400' : 'text-gray-500'
+                              }`}>
+                                {repo.description}
+                              </div>
+                            )}
+                          </div>
+                          {repo.private && (
+                            <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${
+                              darkMode 
+                                ? 'bg-yellow-900/30 text-yellow-400' 
+                                : 'bg-yellow-100 text-yellow-700'
+                            }`}>
+                              Private
+                            </span>
+                          )}
+                        </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -277,6 +405,38 @@ const AIAssignment = () => {
 
     const formatContent = (content) => {
       try {
+        // First, check if it's a GitHub URL
+        if (typeof content === 'string' && content.startsWith('https://github.com/')) {
+          return (
+            <div className={`rounded-lg p-4 ${
+              darkMode ? 'bg-gray-800' : 'bg-blue-50'
+            } border ${
+              darkMode ? 'border-gray-700' : 'border-blue-200'
+            }`}>
+              <div className="flex items-center space-x-3">
+                <FaGithub className={`h-5 w-5 ${
+                  darkMode ? 'text-gray-300' : 'text-blue-600'
+                }`} />
+                <span className={`font-medium ${
+                  darkMode ? 'text-gray-200' : 'text-blue-700'
+                }`}>
+                  Selected Repository:
+                </span>
+                <a 
+                  href={content}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`text-sm hover:underline ${
+                    darkMode ? 'text-blue-400' : 'text-blue-600'
+                  }`}
+                >
+                  {content.replace('https://github.com/', '')}
+                </a>
+              </div>
+            </div>
+          );
+        }
+
         // Check if content is JSON
         if (content.startsWith('```json')) {
           const jsonContent = content.replace(/```json\n|\n```/g, '');
@@ -427,16 +587,10 @@ const AIAssignment = () => {
           </div>
         );
       } catch (e) {
-        // Fallback with enhanced UI
+        // Fallback for non-JSON content
         return (
-          <div className={`rounded-xl p-6 ${
-            darkMode 
-              ? 'bg-gray-800 border border-gray-700' 
-              : 'bg-white border border-gray-200'
-          } shadow-lg`}>
-            <div className={`prose ${darkMode ? 'prose-invert' : ''} max-w-none`}>
-              <ReactMarkdown>{content}</ReactMarkdown>  
-            </div>
+          <div className={`prose ${darkMode ? 'prose-invert' : ''} max-w-none`}>
+            <ReactMarkdown>{content}</ReactMarkdown>
           </div>
         );
       }
