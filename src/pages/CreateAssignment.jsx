@@ -7,7 +7,7 @@ import { FaPlus, FaSpinner } from 'react-icons/fa';
 const CreateAssignment = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
-  const { createAssignment, error: contractError } = useAssignmentManager();
+  const { getClient, error: contractError } = useAssignmentManager();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -39,7 +39,7 @@ const CreateAssignment = () => {
       }
 
       // Create assignment
-      const result = await createAssignment(
+      const result = await getClient().createAssignment(
         formData.title,
         formData.description,
         formData.question,

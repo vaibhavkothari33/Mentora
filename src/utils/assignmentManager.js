@@ -56,6 +56,22 @@ class AssignmentManagerClient {
     return this._sendTransaction(tx);
   }
 
+  async getAssignmentCount() {
+    return await this.contract.methods.assignmentCounter().call();
+  }
+
+  async getAllAssignments() {
+    const assignmentCount = await this.getAssignmentCount();
+    const assignments = [];
+    
+    for (let i = 0; i < assignmentCount; i++) {
+      const assignment = await this.getAssignment(i);
+      assignments.push(assignment);
+    }
+    
+    return assignments;
+  }    
+
   async getAssignment(assignmentId) {
     const result = await this.contract.methods.getAssignment(assignmentId).call();
     return {

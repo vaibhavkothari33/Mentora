@@ -1,12 +1,42 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FaGithub, FaCheck, FaTasks, FaCode, FaChevronDown } from 'react-icons/fa';
+import { FaPlus, FaSpinner, FaCheck, FaTasks, FaCode, FaChevronDown } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
-import { aiAssignments } from '../data/aiAssignmentsData';
+import { useAssignmentManager } from '../hooks/useAssignmentManager';
 
 const Assignments = () => {
-  const { darkMode } = useTheme();
+  const { theme } = useTheme();
+  const { getClient } = useAssignmentManager();
+  const [assignments, setAssignments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [expandedAssignments, setExpandedAssignments] = useState({});
+
+  useEffect(() => {
+    fetchAssignments();
+  }, []);
+
+  const fetchAssignments = async () => {
+    try {
+      setLoading(true);
+      const client = getClient();
+      
+      // Get all assignments
+      const fetchedAssignments = (await client.getAllAssignments())
+        .map((assignment, index) => ({
+            id: index,
+            ...assignment
+        }));
+      
+      setAssignments(fetchedAssignments);
+    } catch (err) {
+      console.error('Error fetching assignments:', err);
+      setError('Failed to load assignments. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const toggleCheckpoints = (index) => {
     setExpandedAssignments(prev => ({
@@ -15,66 +45,92 @@ const Assignments = () => {
     }));
   };
 
+  const formatDate = (timestamp) => {
+    return new Date(timestamp * 1000).toLocaleDateString();
+  };
+
+  if (loading) {
+    return (
+      <div className={`min-h-screen ${theme.background} ${theme.text.primary} flex items-center justify-center`}>
+        <div className="flex flex-col items-center">
+          <FaSpinner className="animate-spin text-4xl mb-4" />
+          <p>Loading assignments...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={`min-h-screen ${theme.background} ${theme.text.primary} flex items-center justify-center`}>
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button
+            onClick={fetchAssignments}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-[#000000]' : 'bg-gradient-to-b from-blue-50 via-white to-blue-50'}`}>
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <motion.h1 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`text-4xl md:text-5xl font-bold text-center mb-12 ${
-            darkMode ? 'text-white' : 'text-gray-900'
-          }`}
-        >
-          My Assignments
-        </motion.h1>
+    <div className={`min-h-screen ${theme.background} ${theme.text.primary} py-12 px-4 sm:px-6 lg:px-8`}>
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <motion.h1 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-4xl font-bold"
+          >
+            Assignments
+          </motion.h1>
+          
+          <Link
+            to="/assignments/create"
+            className={`flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors`}
+          >
+            <FaPlus className="mr-2" />
+            Create Assignment
+          </Link>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {aiAssignments.map((assignment, index) => (
+          {assignments.map((assignment, index) => (
             <motion.div
-              key={index}
+              key={assignment.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className={`${
-                darkMode 
-                  ? 'bg-gray-800/50 backdrop-blur-sm border border-gray-700/50' 
-                  : 'bg-white/80 backdrop-blur-sm border border-gray-200'
-              } rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 h-full flex flex-col`}
+              className={`${theme.card} rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow`}
             >
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {assignment.task}
-                  </h2>
-                </div>
-                <a
-                  href={assignment.github_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`p-2 rounded-full ${
-                    darkMode 
-                      ? 'bg-gray-700/50 hover:bg-gray-700' 
-                      : 'bg-gray-100 hover:bg-gray-200'
-                  } transition-colors duration-200`}
-                >
-                  <FaGithub className={`text-xl ${darkMode ? 'text-white' : 'text-gray-700'}`} />
-                </a>
+                <h2 className="text-xl font-semibold">{assignment.title}</h2>
+                <span className={`px-3 py-1 rounded-full text-sm ${
+                  assignment.isActive 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-red-100 text-red-800'
+                }`}>
+                  {assignment.isActive ? 'Active' : 'Inactive'}
+                </span>
               </div>
 
-              <p className={`text-sm mb-6 flex-grow ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              <p className={`${theme.text.secondary} mb-4 line-clamp-3`}>
                 {assignment.description}
               </p>
 
-              <div>
+              <div className="mb-4">
                 <button
                   onClick={() => toggleCheckpoints(index)}
                   className={`w-full flex items-center justify-between p-3 rounded-lg ${
-                    darkMode ? 'bg-gray-700/30 text-white' : 'bg-gray-50 text-gray-900'
-                  } transition-colors duration-200`}
+                    theme.border
+                  }`}
                 >
                   <div className="flex items-center space-x-2">
-                    <FaCheck className={`${darkMode ? 'text-green-400' : 'text-green-600'}`} />
-                    <span className="font-medium">Checkpoints</span>
+                    <FaCheck className="text-green-500" />
+                    <span className="font-medium">Details</span>
                   </div>
                   <FaChevronDown
                     className={`transform transition-transform duration-200 ${
@@ -85,47 +141,40 @@ const Assignments = () => {
 
                 {expandedAssignments[index] && (
                   <div className="mt-3 space-y-3">
-                    {assignment.checkpoints.map((checkpoint) => (
-                      <div
-                        key={checkpoint.id}
-                        className={`p-3 rounded-lg ${
-                          darkMode 
-                            ? 'bg-gray-700/30 border border-gray-600/30' 
-                            : 'bg-gray-50 border border-gray-200'
-                        } overflow-hidden`}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className={`p-1 rounded-full ${
-                            darkMode ? 'bg-blue-500/20' : 'bg-blue-100'
-                          } flex-shrink-0`}>
-                            <FaCode className={`text-sm ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'} truncate`}>
-                              {checkpoint.title}
-                            </h4>
-                            <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'} break-words`}>
-                              {checkpoint.description}
-                            </p>
-                            {checkpoint.command && (
-                              <div className={`mt-2 p-2 rounded-md text-xs font-mono ${
-                                darkMode 
-                                  ? 'bg-gray-900 text-gray-300' 
-                                  : 'bg-gray-100 text-gray-700'
-                              } break-words whitespace-pre-wrap overflow-x-auto`}>
-                                {checkpoint.command}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                    <div className={`p-3 rounded-lg ${theme.border}`}>
+                      <h4 className="font-medium mb-2">Question</h4>
+                      <p className={`text-sm ${theme.text.secondary}`}>
+                        {assignment.question}
+                      </p>
+                    </div>
                   </div>
                 )}
+              </div>
+
+              <div className="flex items-center justify-between text-sm">
+                <span className={`${theme.text.secondary}`}>
+                  Created: {formatDate(assignment.createdAt)}
+                </span>
+                <span className={`${theme.text.secondary}`}>
+                  Creator: {`${assignment.creator.slice(0, 6)}...${assignment.creator.slice(-4)}`}
+                </span>
               </div>
             </motion.div>
           ))}
         </div>
+
+        {assignments.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-xl">No assignments found.</p>
+            <Link
+              to="/create-assignment"
+              className="mt-4 inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            >
+              <FaPlus className="mr-2" />
+              Create Your First Assignment
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
