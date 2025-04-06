@@ -78,7 +78,7 @@ Mentora addresses these challenges by providing:
 
 ## 🏗️ Architecture
 ```mermaid
-flowchart TB
+flowchart LR
     %% Start and Problem
     A[🏁 Hackaccino] --> B[🌐 Problem Statement]
     B --> B1[❗ High entry barrier in Web3]
@@ -154,16 +154,23 @@ flowchart TB
     L --> L6[📊 Advanced Analytics]
 
     %% Styling for clarity
-    style C fill:#8B5CF6,stroke:#4C1D95,color:#fff
-    style D1 fill:#F97316,color:#fff
-    style D2 fill:#10B981,color:#fff
-    style D3 fill:#3B82F6,color:#fff
-    style H fill:#6366F1,color:#fff
-    style K fill:#EF4444,color:#fff
-    style J fill:#EC4899,color:#fff
-    style L fill:#22D3EE,color:#000
-    style M fill:#84CC16,color:#000
-    style N fill:#F59E0B,color:#000
+    classDef solution fill:#8B5CF6,stroke:#4C1D95,color:#fff
+    classDef ai fill:#F97316,color:#fff
+    classDef blockchain fill:#10B981,color:#fff
+    classDef learning fill:#3B82F6,color:#fff
+    classDef tech fill:#6366F1,color:#fff
+    classDef security fill:#EF4444,color:#fff
+    classDef design fill:#EC4899,color:#fff
+    classDef roadmap fill:#22D3EE,color:#000
+    
+    class C solution
+    class D1 ai
+    class D2 blockchain
+    class D3 learning
+    class H tech
+    class K security
+    class J design
+    class L roadmap
 ```
 
 ## 🎯 Key Features Breakdown
