@@ -54,129 +54,38 @@ async function getRepoStructure(repoUrl) {
     // Extract owner and repo name from GitHub URL
     const [owner, repo] = repoUrl.replace('https://github.com/', '').split('/');
     
-    // Fetch repository contents from GitHub API with recursive=1 to get all contents
-    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/main?recursive=1`);
-    let data = await response.json();
+    // Fetch repository contents from GitHub API
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents`);
+    const data = await response.json();
     
-    if (data.message === "Not Found") {
-      // Try with master branch if main is not found
-      const masterResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/master?recursive=1`);
-      data = await masterResponse.json();
-    }
-
-    if (!data.tree) {
+    if (!Array.isArray(data)) {
       throw new Error('Unable to fetch repository structure');
     }
 
-    return formatRepoStructure(data.tree, owner, repo);
+    return formatRepoStructure(data, owner, repo);
   } catch (error) {
     console.error('Error fetching repo structure:', error);
     throw new Error('Failed to fetch repository structure');
   }
 }
 
-function formatRepoStructure(tree, owner, repo) {
-  // Define patterns for files and directories to exclude
-  const excludePatterns = [
-    /^\.git/,
-    /^\.gitignore$/,
-    /^node_modules/,
-    /^\.env/,
-    /^\.vscode/,
-    /^\.idea/,
-    /^\.DS_Store$/,
-    /^package-lock\.json$/,
-    /^yarn\.lock$/,
-    /^\.next/,
-    /^dist/,
-    /^build/,
-    /^coverage/,
-    /^\.cache/,
-    /^\.husky/,
-    /^\.github/,
-    /^\.eslintrc/,
-    /^\.prettierrc/,
-    /^\.babelrc/,
-    /^\.npmrc$/,
-    /^\.yarnrc$/
-  ];
+function formatRepoStructure(items, owner, repo) {
+  // Start with the root directory
+  let structure = 'Directory structure:\n';
+  structure += `└── ${owner}-${repo}/\n`;
 
-  // Create a map to store the directory structure
-  const dirStructure = new Map();
-  
-  // Filter and sort items: directories first, then files
-  const sortedItems = tree
-    .filter(item => !excludePatterns.some(pattern => pattern.test(item.path))) // Filter out excluded items
-    .sort((a, b) => {
-      if (a.type === 'tree' && b.type !== 'tree') return -1;
-      if (a.type !== 'tree' && b.type === 'tree') return 1;
-      return a.path.localeCompare(b.path);
-    });
-
-  // First pass: create directory entries
-  sortedItems.forEach(item => {
-    const parts = item.path.split('/');
-    let currentPath = '';
-    
-    parts.forEach((part, index) => {
-      const newPath = currentPath ? `${currentPath}/${part}` : part;
-      // Skip if this path should be excluded
-      if (!excludePatterns.some(pattern => pattern.test(newPath))) {
-        if (!dirStructure.has(newPath)) {
-          dirStructure.set(newPath, {
-            name: part,
-            type: item.type,
-            depth: index,
-            path: newPath,
-            children: new Set()
-          });
-        }
-        if (currentPath && dirStructure.has(currentPath)) {
-          dirStructure.get(currentPath).children.add(newPath);
-        }
-      }
-      currentPath = newPath;
-    });
+  // Sort items: directories first, then files
+  const sortedItems = items.sort((a, b) => {
+    if (a.type === 'dir' && b.type !== 'dir') return -1;
+    if (a.type !== 'dir' && b.type === 'dir') return 1;
+    return a.name.localeCompare(b.name);
   });
 
-  // Function to build the tree string
-  function buildTreeString(path, isLast, prefix = '') {
-    const item = dirStructure.get(path);
-    if (!item) return '';
-
-    let result = '';
-    const connector = isLast ? '└── ' : '├── ';
-    const childPrefix = isLast ? '    ' : '│   ';
-    
-    // Add current item
-    result += `${prefix}${connector}${item.name}${item.type === 'tree' ? '/' : ''}\n`;
-
-    // Add children
-    const children = Array.from(item.children);
-    children.forEach((childPath, index) => {
-      result += buildTreeString(
-        childPath,
-        index === children.length - 1,
-        prefix + childPrefix
-      );
-    });
-
-    return result;
-  }
-
-  // Generate the final string
-  const rootName = `${owner}-${repo}`;
-  let structure = 'Directory structure:\n';
-  structure += `${rootName}/\n`;
-
-  // Get root level items
-  const rootItems = Array.from(dirStructure.values())
-    .filter(item => item.depth === 0)
-    .map(item => item.path);
-
-  // Build the tree for each root item
-  rootItems.forEach((path, index) => {
-    structure += buildTreeString(path, index === rootItems.length - 1);
+  // Add each item with proper indentation and tree characters
+  sortedItems.forEach((item, index) => {
+    const isLast = index === sortedItems.length - 1;
+    const prefix = isLast ? '    └── ' : '    ├── ';
+    structure += `${prefix}${item.name}\n`;
   });
 
   return structure;
@@ -311,10 +220,11 @@ const GitHubRepoSelector = ({ onSelect, selectedRepo, darkMode, onRepoSelect }) 
   };
 
   const handleRepoSelect = async (repoFullName) => {
-    onSelect(repoFullName);
+    // Only pass the repository URL to onSelect
+    const repoUrl = `https://github.com/${repoFullName}`;
+    onSelect(repoUrl);
     
     if (repoFullName) {
-      const repoUrl = `https://github.com/${repoFullName}`;
       try {
         // Get repository structure
         const structure = await getRepoStructure(repoUrl);
@@ -519,6 +429,7 @@ const AIAssignment = () => {
   const [error, setError] = useState(null);
   const outputRef = useRef(null);
   const [selectedRepo, setSelectedRepo] = useState('');
+  const [repoStructure, setRepoStructure] = useState('');
   const [expandedCheckpoints, setExpandedCheckpoints] = useState({});
 
   // Use the useChat hook for bot functionality
@@ -955,7 +866,10 @@ const AIAssignment = () => {
   };
 
   const handleRepoSelect = (repoUrlAndStructure) => {
-    setSelectedRepo(repoUrlAndStructure);
+    // Extract the repository URL and structure
+    const [repoUrl, ...structureParts] = repoUrlAndStructure.split('\n\n');
+    setSelectedRepo(repoUrl);
+    setRepoStructure(structureParts.join('\n\n'));
   };
 
   if (loading) {
@@ -1240,6 +1154,14 @@ const AIAssignment = () => {
                   <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
                     <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'} break-words`}>
                       {selectedRepo}
+                      {repoStructure && (
+                        <>
+                          <br /><br />
+                          <pre className="whitespace-pre font-mono">
+                            {repoStructure}
+                          </pre>
+                        </>
+                      )}
                     </p>
                   </div>
                 ) : (
