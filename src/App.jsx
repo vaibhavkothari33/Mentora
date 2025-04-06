@@ -11,6 +11,7 @@ import RoadmapGenerator from './pages/RoadmapGenerator';
 import AIAssignment from './pages/AIAssignment';
 import Contact from './pages/Contact';
 import Assignments from './pages/Assignments';
+import CreateAssignment from './pages/CreateAssignment';
 import Profile from './pages/Profile';
 import { ThemeProvider } from './context/ThemeContext';
 import FAQ from './pages/FAQ';
@@ -35,6 +36,7 @@ function App() {
             <Route path="about" element={<About />} />
             <Route path="ai-assignment" element={<AIAssignment />} />
             <Route path="assignments" element={<Assignments />} />
+            <Route path="create-assignment" element={<CreateAssignment />} />
             <Route path="contact" element={<Contact />} />
             <Route path="*" element={<NotFound />} />
           </Route>
