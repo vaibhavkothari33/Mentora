@@ -8,7 +8,7 @@ import ipfsService from '../utils/ipfsStorage';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { useAccount, useBalance } from 'wagmi';
-import { ethers } from 'ethers';
+import Web3 from 'web3';
 import { toast } from 'react-hot-toast';
 
 const CourseModal = ({ isOpen, setIsOpen, course, theme }) => {
@@ -275,19 +275,19 @@ const CourseCard = ({ course, theme }) => {
   );
 };
 
-const BuyCourseButton = ({ course, theme }) => {
+const BuyCourseButton = ({ course }) => {
   const { address } = useAccount();
   const { data: balance } = useBalance({ address });
   const [purchasing, setPurchasing] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
-  const { purchaseCourse, checkEnrollment } = useCourseContract();
+  const { getClient } = useMentoraContract();
 
   // Check if user is already enrolled
   useEffect(() => {
     const checkUserEnrollment = async () => {
       if (address && course.id) {
         try {
-          const enrolled = await checkEnrollment(course.id, address);
+          const enrolled = await getClient().hasUserPurchasedCourse(address, course.id);
           setIsEnrolled(enrolled);
         } catch (error) {
           console.error('Error checking enrollment:', error);
@@ -296,7 +296,7 @@ const BuyCourseButton = ({ course, theme }) => {
     };
 
     checkUserEnrollment();
-  }, [address, course.id]);
+  }, [address, course.id, getClient]);
 
   const handlePurchase = async () => {
     if (!address) {
@@ -312,9 +312,7 @@ const BuyCourseButton = ({ course, theme }) => {
     try {
       setPurchasing(true);
       
-      // Convert course price to Wei
-      const priceInWei = ethers.utils.parseEther(course.price.toString());
-      
+      const priceInWei = this.web3.utils.toWei(course.price.toString(), 'ether');
       // Check if user has enough balance
       if (balance?.value.lt(priceInWei)) {
         toast.error('Insufficient balance to purchase this course');
@@ -336,7 +334,7 @@ const BuyCourseButton = ({ course, theme }) => {
 
       try {
         // Call the contract to purchase the course
-        await purchaseCourse(course.id, course.price);
+        await getClient().purchaseCourse(course.id, course.price);
 
         // Success! Update UI and show success message
         toast.success('Successfully enrolled in the course!', {
@@ -450,7 +448,7 @@ const Courses = () => {
       const courseCount = await client.getCourseCount();
       
       const fetchedCourses = [];
-      for (let i = 1; i <= courseCount; i++) {
+      for (let i = 0; i < courseCount; i++) {
         try {
           const courseInfo = await client.getCourseInfo(i);
           const courseStats = await client.getCourseStats(i);

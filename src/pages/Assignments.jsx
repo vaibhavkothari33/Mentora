@@ -110,7 +110,7 @@ const Assignments = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               onClick={() => handleAssignmentClick(assignment)}
-              className={`${theme.card} rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow cursor-pointer transform hover:scale-105 transition-transform duration-200`}
+              className={`${theme.card} rounded-xl p-6 shadow-lg hover:shadow-xl cursor-pointer transform hover:scale-105 transition-transform duration-200`}
             >
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">{assignment.title}</h2>

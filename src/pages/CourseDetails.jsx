@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FaStar, FaUsers, FaClock, FaBook, FaChalkboardTeacher, FaGraduationCap, FaCode, FaPlay } from 'react-icons/fa';
+import { FaStar, FaClock, FaBook, FaChalkboardTeacher, FaGraduationCap, FaCode, FaPlay, FaCheck, FaSpinner, FaWallet, FaEthereum } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
 import { useMentoraContract } from '../hooks/useMentoraContract';
 import ipfsService from '../utils/ipfsStorage';
+import { toast } from 'react-hot-toast';
+import Web3 from 'web3';
+import { useAccount, useBalance } from 'wagmi';
 
 const CourseDetails = () => {
   const { id } = useParams();
@@ -14,6 +17,10 @@ const CourseDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const { address } = useAccount();
+  const { data: balance } = useBalance({ address });
+  const [purchasing, setPurchasing] = useState(false);
+  const [isEnrolled, setIsEnrolled] = useState(false);
 
   useEffect(() => {
     fetchCourseDetails();
@@ -77,6 +84,139 @@ const CourseDetails = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const checkEnrollment = async () => {
+      if (!address || !course?.id) return;
+      
+      try {
+        const client = getClient();
+        const enrolled = await client.hasUserPurchasedCourse(address, course.id);
+        setIsEnrolled(enrolled);
+      } catch (error) {
+        console.error('Error checking enrollment:', error);
+      }
+    };
+
+    checkEnrollment();
+  }, [address, course?.id, getClient]);
+
+  const handleEnroll = async () => {
+    if (!address) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    if (isEnrolled) {
+      toast.error('You are already enrolled in this course');
+      return;
+    }
+
+    try {
+      setPurchasing(true);
+      
+      console.log(course);
+      // Convert course price to Wei
+      const priceInWei = Web3.utils.toWei(course.price.toString(), 'ether');
+      
+      // Check if user has enough balance
+      if (balance?.value.lt(priceInWei)) {
+        toast.error('Insufficient balance to purchase this course');
+        return;
+      }
+
+      // Show confirmation dialog
+      const confirmed = window.confirm(
+        `Are you sure you want to purchase "${course.title}" for ${course.price} ETH?`
+      );
+
+      if (!confirmed) {
+        setPurchasing(false);
+        return;
+      }
+
+      // Create loading toast
+      const loadingToast = toast.loading('Processing your purchase...');
+
+      try {
+        // Get contract client and purchase course
+        const tx = await getClient().purchaseCourse(course.id, course.price);
+
+        // Wait for transaction confirmation
+        await tx.wait();
+
+        // Success! Update UI and show success message
+        toast.success('Successfully enrolled in the course!', {
+          id: loadingToast,
+        });
+        
+        // Update enrollment status
+        setIsEnrolled(true);
+        
+        // Refresh the page to show updated enrollment status
+        window.location.reload();
+
+      } catch (error) {
+        // Handle specific error cases
+        let errorMessage = 'Failed to purchase course';
+        
+        if (error.code === 'ACTION_REJECTED') {
+          errorMessage = 'Transaction was rejected';
+        } else if (error.message.includes('insufficient funds')) {
+          errorMessage = 'Insufficient funds for transaction';
+        } else if (error.message.includes('user rejected transaction')) {
+          errorMessage = 'You rejected the transaction';
+        }
+        
+        toast.error(errorMessage, {
+          id: loadingToast,
+        });
+        
+        console.error('Purchase error:', error);
+      }
+    } catch (error) {
+      console.error('Transaction error:', error);
+      toast.error(error.message || 'Failed to process transaction');
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
+  const renderEnrollButton = () => (
+    <button
+      onClick={handleEnroll}
+      disabled={purchasing || isEnrolled || !address}
+      className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2
+        ${isEnrolled 
+          ? 'bg-green-600 cursor-not-allowed' 
+          : purchasing 
+            ? 'bg-gray-600 cursor-not-allowed'
+            : 'bg-blue-600 hover:bg-blue-700'
+        } text-white`}
+    >
+      {isEnrolled ? (
+        <>
+          <FaCheck className="text-xl" />
+          <span>Enrolled</span>
+        </>
+      ) : purchasing ? (
+        <>
+          <FaSpinner className="animate-spin text-xl" />
+          <span>Processing...</span>
+        </>
+      ) : !address ? (
+        <>
+          <FaWallet className="text-xl" />
+          <span>Connect Wallet</span>
+        </>
+      ) : (
+        <>
+          <FaEthereum className="text-xl" />
+          <span>Enroll Now • {parseFloat(course.price).toFixed(4)} ETH</span>
+        </>
+      )}
+    </button>
+  );
 
   if (loading) {
     return (
@@ -153,9 +293,7 @@ const CourseDetails = () => {
             transition={{ delay: 0.4 }}
             className="flex gap-4"
           >
-            <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-medium transition-colors">
-              Enroll Now • {parseFloat(course.price).toFixed(4)} ETH
-            </button>
+            {renderEnrollButton()}
             <button className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-medium transition-colors">
               Preview Course
             </button>
