@@ -816,7 +816,19 @@ const AIAssignment = () => {
                 ? 'bg-blue-600 text-white' 
                 : 'bg-blue-500 text-white'
             }`}>
-              <p className="text-sm">{message.content}</p>
+              {message.content.includes('github.com') ? (
+                <a 
+                  href={message.content.match(/(https:\/\/github\.com\/[^\s]+)/)?.[0]} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-white hover:underline"
+                >
+                  <FaGithub className="text-lg" />
+                  {message.content.match(/(https:\/\/github\.com\/[^\s]+)/)?.[0]}
+                </a>
+              ) : (
+                <p className="text-sm">{message.content}</p>
+              )}
             </div>
           </div>
         );
