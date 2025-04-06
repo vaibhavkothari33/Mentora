@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-// import { CourseMarketplaceClient } from '../utils/mentoraBlockchain';
+import { MentoraClient } from '../utils/mentoraBlockchain';
 
 /**
- * Custom hook for managing the CourseMarketplace client
+ * Custom hook for managing the MentoraClient client
  * @returns {Object} Client instance and utility functions
  */
 export const useMentoraContract = () => {
@@ -14,7 +14,7 @@ export const useMentoraContract = () => {
   const initialize = useCallback((provider, contractAddress, account) => {
     try {
       if (!client) {
-        const newClient = new CourseMarketplaceClient(provider, contractAddress);
+        const newClient = new MentoraClient(provider, contractAddress);
         newClient.setDefaultAccount(account);
         setClient(newClient);
         setIsInitialized(true);
@@ -39,7 +39,7 @@ export const useMentoraContract = () => {
         return initialize(provider, contractAddress, account);
       } catch (err) {
         setError(err.message);
-        throw new Error('Failed to initialize CourseMarketplace client: ' + err.message);
+        throw new Error('Failed to initialize MentoraClient client: ' + err.message);
       }
     }
     return client;

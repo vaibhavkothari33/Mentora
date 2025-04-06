@@ -1,183 +1,193 @@
 import { useState, useEffect } from 'react';
-import { FaGraduationCap, FaEthereum, FaUserGraduate, FaBookOpen, FaClock, FaStar } from 'react-icons/fa';
-import { useTheme } from '../context/ThemeContext';
 import { Link } from 'react-router-dom';
+import { FaStar, FaUsers, FaClock, FaFilter } from 'react-icons/fa';
+import { useTheme } from '../context/ThemeContext';
 import { useMentoraContract } from '../hooks/useMentoraContract';
-import { ethers } from 'ethers';
+import ipfsService from '../utils/ipfsStorage';
 
 const Courses = () => {
+  const { theme } = useTheme();
+  const { getClient } = useMentoraContract();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filter, setFilter] = useState('all');
-  const { theme } = useTheme();
-  const { getClient } = useMentoraContract();
+  const [filter, setFilter] = useState('all'); // 'all' or 'active'
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const client = getClient();
-        if (!client) {
-          throw new Error("CourseMarketplace client not initialized");
-        }
-        const coursesData = await client.getAllCourses();
-        
-        // Transform course data to match component needs
-        const transformedCourses = coursesData.map(course => ({
-          id: course.id.toString(),
-          title: course.title,
-          description: course.description,
-          thumbnailIpfsHash: `https://ipfs.io/ipfs/${course.thumbnailIpfsHash}`,
-          creator: course.creator,
-          price: ethers.utils.formatEther(course.price.toString()),
-          isActive: course.isActive,
-          totalSales: course.totalSales.toString(),
-          moduleCount: course.moduleCount.toString()
-        }));
-        
-        setCourses(transformedCourses);
-      } catch (err) {
-        console.error("Error fetching courses:", err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchCourses();
-  }, [getClient]);
+  }, []);
+
+  const fetchCourses = async () => {
+    try {
+      setLoading(true);
+      const client = getClient();
+      const courseCount = await client.getCourseCount();
+      
+      const fetchedCourses = [];
+      for (let i = 1; i <= courseCount; i++) {
+        try {
+          const courseInfo = await client.getCourseInfo(i);
+          const courseStats = await client.getCourseStats(i);
+          
+          // Fetch course content for preview
+          const contentIpfsHash = await client.getCoursePreview(i);
+          let courseContent = null;
+          try {
+            const content = await ipfsService.retrieveFile(contentIpfsHash);
+            courseContent = JSON.parse(content);
+          } catch (err) {
+            console.error(`Error fetching course content for course ${i}:`, err);
+          }
+
+          fetchedCourses.push({
+            ...courseInfo,
+            ...courseStats,
+            content: courseContent
+          });
+        } catch (err) {
+          console.error(`Error fetching course ${i}:`, err);
+        }
+      }
+
+      setCourses(fetchedCourses);
+    } catch (err) {
+      console.error('Error fetching courses:', err);
+      setError('Failed to load courses. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredCourses = courses.filter(course => {
+    const matchesFilter = filter === 'all' || course.isActive;
+    const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         course.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
+
+  const formatDuration = (minutes) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}m`;
+  };
 
   if (loading) {
     return (
-      <div className={`min-h-screen ${theme.background} ${theme.text.primary} flex items-center justify-center`}>
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-current border-t-transparent"></div>
+      <div className={`min-h-screen ${theme.background} ${theme.text.primary} py-12 px-4 sm:px-6 lg:px-8`}>
+        <div className="max-w-7xl mx-auto">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className={`min-h-screen ${theme.background} ${theme.text.primary} flex items-center justify-center`}>
-        <div className="text-center">
-          <p className="text-xl mb-4">Error loading courses</p>
-          <p className={`${theme.text.secondary}`}>{error}</p>
+      <div className={`min-h-screen ${theme.background} ${theme.text.primary} py-12 px-4 sm:px-6 lg:px-8`}>
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-b ${theme.background} ${theme.text.primary} py-12 px-4 sm:px-6 lg:px-8`}>
+    <div className={`min-h-screen ${theme.background} ${theme.text.primary} py-12 px-4 sm:px-6 lg:px-8`}>
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Explore Blockchain Courses</h1>
-          <p className={`${theme.text.secondary} max-w-2xl mx-auto`}>
-            Master blockchain technology with our curated collection of courses
-          </p>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+          <h1 className="text-3xl font-bold mb-4 md:mb-0">Available Courses</h1>
           
-          {/* Filter tabs */}
-          <div className="flex flex-wrap justify-center mt-8 gap-2">
-            <button 
-              onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${filter === 'all' 
-                ? `bg-gradient-to-r ${theme.primary} text-white` 
-                : `bg-opacity-20 bg-gray-200 dark:bg-gray-700 ${theme.text.secondary}`}`}
+          <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search courses..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={`w-full md:w-64 px-4 py-2 rounded-lg border ${theme.border} ${theme.background} ${theme.text.primary}`}
+              />
+              <FaFilter className="absolute right-4 top-3 text-gray-400" />
+            </div>
+            
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className={`px-4 py-2 rounded-lg border ${theme.border} ${theme.background} ${theme.text.primary}`}
             >
-              All Courses
-            </button>
-            <button 
-              onClick={() => setFilter('active')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${filter === 'active' 
-                ? `bg-gradient-to-r ${theme.primary} text-white` 
-                : `bg-opacity-20 bg-gray-200 dark:bg-gray-700 ${theme.text.secondary}`}`}
-            >
-              Active Courses
-            </button>
+              <option value="all">All Courses</option>
+              <option value="active">Active Courses</option>
+            </select>
           </div>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {courses
-            .filter(course => filter === 'all' || (filter === 'active' && course.isActive))
-            .map((course) => (
-            <div key={course.id} className={`${theme.card} rounded-xl shadow-lg overflow-hidden transition-transform duration-300 hover:scale-105 border ${theme.border} flex flex-col`}>
-              {/* Course image */}
-              <div className="relative h-48 overflow-hidden">
-                <img 
-                  src={course.thumbnailIpfsHash} 
-                  alt={course.title} 
-                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCourses.map((course) => (
+            <Link
+              key={course.id}
+              to={`/courses/${course.id}`}
+              className={`block ${theme.card} rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300`}
+            >
+              <div className="relative">
+                <img
+                  src={ipfsService.getIPFSUrl(course.thumbnailIpfsHash)}
+                  alt={course.title}
+                  className="w-full h-48 object-cover"
                 />
-                <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white px-3 py-1 rounded-full text-sm font-medium">
-                  {course.price} ETH
-                </div>
+                {!course.isActive && (
+                  <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded">
+                    Inactive
+                  </div>
+                )}
               </div>
               
-              <div className="p-6 flex-grow flex flex-col">
-                <div className="mb-3 flex items-center gap-2">
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                    course.isActive 
-                      ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100'
-                      : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100'
-                  }`}>
-                    {course.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100">
-                    {course.moduleCount} Modules
-                  </span>
-                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-100">
-                    <FaClock className="inline mr-1" />
-                    {course.duration}h
-                  </span>
-                </div>
-                
+              <div className="p-6">
                 <h2 className="text-xl font-semibold mb-2">{course.title}</h2>
-                
-                <p className={`${theme.text.secondary} mb-4 line-clamp-3 text-sm flex-grow`}>
+                <p className={`${theme.text.secondary} mb-4 line-clamp-2`}>
                   {course.description}
                 </p>
                 
-                <div className="space-y-3 mt-auto">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <span className="text-sm truncate max-w-[150px]" title={course.creator}>
-                        {`${course.creator.slice(0, 6)}...${course.creator.slice(-4)}`}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm">
-                      <div>
-                        <FaUserGraduate className="mr-1 inline" />
-                        <span>{course.enrolledUsers} enrolled</span>
-                      </div>
-                      <div>
-                        <FaBookOpen className="mr-1 inline" />
-                        <span>{course.totalSales} sales</span>
-                      </div>
-                    </div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center">
+                    <FaStar className="text-yellow-400 mr-1" />
+                    <span>{course.totalSales}</span>
                   </div>
-                  
-                  <div className="pt-4 mt-2 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                    <div className="flex items-center">
-                      <FaEthereum className={`mr-1 ${theme.text.accent} text-lg`} />
-                      <span className="font-bold">{ethers.utils.formatEther(course.price.toString())} ETH</span>
-                    </div>
-                    <Link
-                      to={`/courses/${course.id}`}
-                      className={`bg-gradient-to-r ${theme.primary} text-white px-4 py-2 rounded-lg hover:shadow-lg transform transition-all duration-200 hover:scale-105 text-center flex-shrink-0`}
-                    >
-                      View Course
-                    </Link>
+                  <div className="flex items-center">
+                    <FaUsers className="text-blue-500 mr-1" />
+                    <span>{course.enrolledUsers}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <FaClock className="text-gray-500 mr-1" />
+                    <span>{formatDuration(course.duration)}</span>
                   </div>
                 </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-semibold">
+                    {parseFloat(course.price).toFixed(4)} ETH
+                  </span>
+                  <span className={`px-3 py-1 rounded-full text-sm ${
+                    course.difficulty === 1 ? 'bg-green-100 text-green-800' :
+                    course.difficulty === 2 ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {course.difficulty === 1 ? 'Beginner' :
+                     course.difficulty === 2 ? 'Intermediate' :
+                     'Advanced'}
+                  </span>
+                </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
-        {courses.length === 0 && (
-          <div className={`text-center py-16 ${theme.text.secondary}`}>
-            <FaGraduationCap className="text-5xl mx-auto mb-4 opacity-50" />
-            <p className="text-xl">No courses available at the moment.</p>
+        {filteredCourses.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-xl">No courses found matching your criteria.</p>
           </div>
         )}
       </div>
