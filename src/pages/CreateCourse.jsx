@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaSpinner, FaUpload, FaPlus, FaTrash } from 'react-icons/fa';
+import { FaSpinner, FaUpload, FaPlus, FaTrash, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
 import ipfsService from '../utils/ipfsStorage';
+import { useMentoraContract } from '../hooks/useMentoraContract';
 
 const CreateCourse = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const { getClient } = useMentoraContract();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -17,21 +19,21 @@ const CreateCourse = () => {
     description: '',
     price: '',
     category: '',
-    difficulty: 'beginner',
-    sections: [
+    difficulty: 1, // 1: beginner, 2: intermediate, 3: advanced
+    duration: 0, // Duration in minutes
+    thumbnail: null,
+    thumbnailName: '',
+    introVideo: null,
+    introVideoName: '',
+    modules: [
       {
         title: '',
-        description: '',
         video: null,
-        materials: null,
-        duration: 0,
         videoName: '',
-        materialsName: '',
-        videoUrl: null
+        materials: [],
+        materialNames: []
       }
-    ],
-    thumbnail: null,
-    thumbnailName: ''
+    ]
   });
 
   const handleInputChange = (e) => {
@@ -42,142 +44,80 @@ const CreateCourse = () => {
     }));
   };
 
-  const handleFileChange = async (e, field, sectionIndex = null) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleModuleChange = (index, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      modules: prev.modules.map((module, i) => 
+        i === index ? { ...module, [field]: value } : module
+      )
+    }));
+  };
 
-    try {
-      if (field === 'thumbnail') {
-        const reader = new FileReader();
-        reader.onload = () => {
-          setPreviewUrl(reader.result);
-        };
-        reader.readAsDataURL(file);
-        
-        setFormData(prev => ({
-          ...prev,
-          thumbnail: file,
-          thumbnailName: file.name
-        }));
-      } else if (sectionIndex !== null) {
-        if (field === 'video') {
-          if (!file.type.startsWith('video/')) {
-            throw new Error('Please select a valid video file');
-          }
-
-          const videoUrl = URL.createObjectURL(file);
-          
-          const updatedSections = [...formData.sections];
-          updatedSections[sectionIndex] = {
-            ...updatedSections[sectionIndex],
-            video: file,
-            videoName: file.name,
-            videoUrl: videoUrl
-          };
-
-          setFormData(prev => ({
-            ...prev,
-            sections: updatedSections
-          }));
-
-        } else if (field === 'materials') {
-          setFormData(prev => ({
-            ...prev,
-            sections: prev.sections.map((section, idx) =>
-              idx === sectionIndex ? { 
-                ...section, 
-                materials: file,
-                materialsName: file.name
-              } : section
-            )
-          }));
+  const addModule = () => {
+    setFormData(prev => ({
+      ...prev,
+      modules: [
+        ...prev.modules,
+        {
+          title: '',
+          video: null,
+          videoName: '',
+          materials: [],
+          materialNames: []
         }
-      }
-    } catch (err) {
-      console.error('Error handling file:', err);
-      setError(err.message);
-    }
-  };
-
-  const removeSection = (index) => {
-    if (formData.sections.length <= 1) {
-      setError("You must have at least one section");
-      return;
-    }
-    
-    setFormData(prev => ({
-      ...prev,
-      sections: prev.sections.filter((_, idx) => idx !== index)
-    }));
-  };
-  
-  const moveSection = (index, direction) => {
-    const newSections = [...formData.sections];
-    if (direction === 'up' && index > 0) {
-      [newSections[index], newSections[index - 1]] = [newSections[index - 1], newSections[index]];
-    } else if (direction === 'down' && index < newSections.length - 1) {
-      [newSections[index], newSections[index + 1]] = [newSections[index + 1], newSections[index]];
-    }
-    
-    setFormData(prev => ({
-      ...prev,
-      sections: newSections
+      ]
     }));
   };
 
-  const updateSectionField = (index, field, value) => {
-    const newSections = [...formData.sections];
-    newSections[index][field] = value;
-    setFormData(prev => ({ ...prev, sections: newSections }));
+  const removeModule = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      modules: prev.modules.filter((_, i) => i !== index)
+    }));
   };
 
-  const resetForm = () => {
-    if (confirm("Are you sure you want to reset the form? All progress will be lost.")) {
-      setFormData({
-        title: '',
-        description: '',
-        price: '',
-        category: '',
-        difficulty: 'beginner',
-        sections: [
-          {
-            title: '',
-            description: '',
-            video: null,
-            materials: null,
-            duration: 0,
-            videoName: '',
-            materialsName: ''
-          }
-        ],
-        thumbnail: null,
-        thumbnailName: ''
-      });
-      setPreviewUrl(null);
-      setError(null);
-    }
+  const moveModuleUp = (index) => {
+    if (index === 0) return;
+    setFormData(prev => {
+      const newModules = [...prev.modules];
+      const temp = newModules[index];
+      newModules[index] = newModules[index - 1];
+      newModules[index - 1] = temp;
+      return { ...prev, modules: newModules };
+    });
   };
 
-  const uploadToIPFS = async (file, type) => {
+  const moveModuleDown = (index) => {
+    if (index === formData.modules.length - 1) return;
+    setFormData(prev => {
+      const newModules = [...prev.modules];
+      const temp = newModules[index];
+      newModules[index] = newModules[index + 1];
+      newModules[index + 1] = temp;
+      return { ...prev, modules: newModules };
+    });
+  };
+
+  const handleFileUpload = async (file, type) => {
     try {
-      let hash;
-      if (type === 'image') {
-        hash = await ipfsService.uploadFile(file, (progress) => {
+      let cid;
+      if (type === 'thumbnail') {
+        cid = await ipfsService.uploadImage(file, (progress) => {
           setUploadProgress(progress);
         });
       } else if (type === 'video') {
-        hash = await ipfsService.uploadVideo(file, (progress) => {
+        cid = await ipfsService.uploadVideo(file, (progress) => {
           setUploadProgress(progress);
         });
-      } else if (type === 'file') {
-        hash = await ipfsService.uploadFile(file, (progress) => {
+      } else if (type === 'material') {
+        cid = await ipfsService.uploadFile(file, (progress) => {
           setUploadProgress(progress);
         });
       }
-      return hash;
-    } catch (error) {
-      console.error('Error uploading to IPFS:', error);
-      throw error;
+      return cid;
+    } catch (err) {
+      console.error(`Error uploading ${type}:`, err);
+      throw err;
     }
   };
 
@@ -185,65 +125,74 @@ const CreateCourse = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setUploadProgress(0);
 
     try {
-      // Upload thumbnail first
-      let thumbnailHash;
-      if (formData.thumbnail) {
-        thumbnailHash = await uploadToIPFS(formData.thumbnail, 'image');
+      // Validate form data
+      if (!formData.title || !formData.description || !formData.price || !formData.category) {
+        throw new Error('Please fill in all required fields');
       }
 
-      // Upload all section content to IPFS
-      const sectionsWithHashes = await Promise.all(
-        formData.sections.map(async (section) => {
-          const sectionData = {
-            title: section.title,
-            description: section.description,
-            duration: section.duration || 0
-          };
+      // Upload thumbnail
+      setUploadProgress(10);
+      const thumbnailIpfsHash = await handleFileUpload(formData.thumbnail, 'thumbnail');
+      setUploadProgress(30);
 
-          if (section.video) {
-            const videoHash = await uploadToIPFS(section.video, 'video');
-            sectionData.videoURI = videoHash;
-          }
+      // Upload intro video
+      const introVideoIpfsHash = await handleFileUpload(formData.introVideo, 'video');
+      setUploadProgress(50);
 
-          if (section.materials) {
-            const materialHash = await uploadToIPFS(section.materials, 'file');
-            sectionData.materialURI = materialHash;
-          }
+      // Upload modules and materials
+      const moduleIpfsHashes = [];
+      const moduleTitles = [];
+      const materialIpfsHashes = {};
 
-          return sectionData;
-        })
-      );
+      for (let i = 0; i < formData.modules.length; i++) {
+        const module = formData.modules[i];
+        
+        // Upload module video
+        const videoHash = await handleFileUpload(module.video, 'video');
+        moduleIpfsHashes.push(videoHash);
+        moduleTitles.push(module.title);
 
-      // Create course metadata
-      const metadata = {
-        title: formData.title,
-        description: formData.description,
-        price: formData.price,
-        thumbnail: thumbnailHash,
-        category: formData.category,
-        difficulty: formData.difficulty,
-        sections: sectionsWithHashes,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        version: "1.0"
+        // Upload materials for this module
+        const materialHashes = [];
+        for (const material of module.materials) {
+          const materialHash = await handleFileUpload(material, 'material');
+          materialHashes.push(materialHash);
+        }
+        materialIpfsHashes[i] = materialHashes;
+      }
+      setUploadProgress(80);
+
+      // Create course content metadata
+      const courseContent = {
+        introVideoIpfsHash,
+        moduleIpfsHashes,
+        moduleTitles,
+        materialIpfsHashes,
+        materialCount: Object.values(materialIpfsHashes).flat().length
       };
 
-      // Upload metadata to IPFS
-      const metadataHash = await ipfsService.uploadJSON(metadata);
+      // Upload course content to IPFS
+      const contentURI = await ipfsService.uploadJSON(courseContent);
+      setUploadProgress(90);
 
       // Create course on blockchain
-      await handleCreateCourse({
-        ...formData,
-        contentURI: metadataHash,
-        sections: sectionsWithHashes
-      });
-
-      alert('Course created successfully!');
+      const client = getClient();
+      
+      await client.createCourse(
+        formData.title,
+        formData.description,
+        formData.category,
+        thumbnailIpfsHash,
+        introVideoIpfsHash,
+        formData.difficulty,
+        formData.duration,
+        formData.price
+      );
+      
+      setUploadProgress(100);
       navigate('/courses');
-
     } catch (err) {
       console.error('Error creating course:', err);
       setError(err.message);
@@ -252,136 +201,77 @@ const CreateCourse = () => {
     }
   };
 
-  const renderVideoUpload = (section, index) => (
-    <div>
-      <label className="block text-sm font-medium mb-1">Video</label>
-      <div className={`border-2 border-dashed rounded-md p-3 ${theme.borderColor} hover:border-blue-400 transition duration-300`}>
-        <div className="flex items-center justify-center">
-          <label className="cursor-pointer flex items-center gap-2 w-full">
-            <FaUpload className="text-gray-400" />
-            <span className={`${section.videoName ? '' : 'text-gray-400'} truncate`}>
-              {section.videoName || 'Upload Video'}
-            </span>
-            <input
-              type="file"
-              accept="video/*"
-              onChange={(e) => handleFileChange(e, 'video', index)}
-              className="hidden"
-            />
-          </label>
-        </div>
-        {section.videoUrl && (
-          <div className="mt-2">
-            <video 
-              src={section.videoUrl} 
-              controls 
-              className="w-full rounded-md"
-              style={{ maxHeight: '200px' }}
-            />
-            <button
-              type="button"
-              onClick={() => {
-                URL.revokeObjectURL(section.videoUrl);
-                setFormData(prev => ({
-                  ...prev,
-                  sections: prev.sections.map((s, idx) =>
-                    idx === index ? {
-                      ...s,
-                      video: null,
-                      videoName: '',
-                      videoUrl: null
-                    } : s
-                  )
-                }));
-              }}
-              className="mt-2 text-red-500 hover:text-red-700"
-            >
-              Remove Video
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
   return (
     <div className={`min-h-screen ${theme.background} ${theme.text.primary} py-12 px-4 sm:px-6 lg:px-8`}>
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Create New Course</h1>
-          <p className={`${theme.text.secondary} max-w-2xl mx-auto`}>
-            Share your knowledge by creating a new course
-          </p>
-        </div>
+        <h1 className="text-3xl font-bold mb-8">Create New Course</h1>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-center justify-between">
-            <span>{error}</span>
-            <button onClick={() => setError(null)} className="text-red-700">×</button>
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
           </div>
         )}
 
-        {loading && (
-          <div className="mb-6">
-            <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-              <div 
-                className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
-                style={{ width: `${uploadProgress}%` }}
-              ></div>
-            </div>
-            <p className="text-center mt-2">{`Uploading... ${uploadProgress}%`}</p>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Information */}
-          <div className={`${theme.card} rounded-lg p-6 shadow-md`}>
-            <h2 className="text-xl font-semibold mb-4 border-b pb-2">Course Information</h2>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Basic Course Information */}
+          <div className={`${theme.card} p-6 rounded-xl border ${theme.border}`}>
+            <h2 className="text-xl font-semibold mb-4">Course Information</h2>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium mb-1" htmlFor="title">
+                <label className="block text-sm font-medium mb-1">
                   Title <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
-                  id="title"
                   name="title"
                   value={formData.title}
                   onChange={handleInputChange}
-                  className={`w-full rounded-md border text-black p-2`}
-                  placeholder="Enter course title"
+                  className={`w-full rounded-md border p-2 text-black`}
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1" htmlFor="price">
+                <label className="block text-sm font-medium mb-1">
                   Price (ETH) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
-                  id="price"
                   name="price"
                   value={formData.price}
                   onChange={handleInputChange}
                   className={`w-full rounded-md border p-2 text-black`}
-                  placeholder="0.05"
-                  step="0.001"
+                  step="0.01"
                   min="0"
                   required
                 />
               </div>
 
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1">
+                  Description <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  className={`w-full rounded-md border p-2 text-black`}
+                  rows="4"
+                  required
+                />
+              </div>
+
               <div>
-                <label className="block text-sm font-medium mb-1" htmlFor="category">
-                  Category
+                <label className="block text-sm font-medium mb-1">
+                  Category <span className="text-red-500">*</span>
                 </label>
                 <select
-                  id="category"
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
-                  className={`w-full rounded-md border p-2  text-black`}
+                  className={`w-full rounded-md border p-2 text-black`}
+                  required
                 >
                   <option value="">Select a category</option>
                   <option value="programming">Programming</option>
@@ -389,236 +279,260 @@ const CreateCourse = () => {
                   <option value="business">Business</option>
                   <option value="marketing">Marketing</option>
                   <option value="personal-development">Personal Development</option>
-                  <option value="other">Other</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1" htmlFor="difficulty">
-                  Difficulty Level
+                <label className="block text-sm font-medium mb-1">
+                  Difficulty Level <span className="text-red-500">*</span>
                 </label>
-                <div className="flex gap-3">
-                  {['beginner', 'intermediate', 'advanced'].map(level => (
-                    <label key={level} className="flex items-center cursor-pointer">
-                      <input
-                        type="radio"
-                        name="difficulty"
-                        value={level}
-                        checked={formData.difficulty === level}
-                        onChange={handleInputChange}
-                        className="mr-1"
-                      />
-                      <span className="capitalize">{level}</span>
-                    </label>
-                  ))}
-                </div>
+                <select
+                  name="difficulty"
+                  value={formData.difficulty}
+                  onChange={handleInputChange}
+                  className={`w-full rounded-md border p-2 text-black`}
+                  required
+                >
+                  <option value={1}>Beginner</option>
+                  <option value={2}>Intermediate</option>
+                  <option value={3}>Advanced</option>
+                </select>
               </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-1" htmlFor="description">
-                  Description <span className="text-red-500">*</span>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Duration (minutes) <span className="text-red-500">*</span>
                 </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
+                <input
+                  type="number"
+                  name="duration"
+                  value={formData.duration}
                   onChange={handleInputChange}
-                  className={`w-full rounded-md border p-2  text-black`}
-                  rows="4"
-                  placeholder="Describe your course in detail"
+                  className={`w-full rounded-md border p-2 text-black`}
+                  min="0"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  {formData.description.length}/500 characters
-                </p>
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-1">Thumbnail</label>
-                <div className={`border-2 border-dashed rounded-md p-4 ${theme.borderColor} hover:border-blue-400 transition duration-300`}>
-                  <div className="flex items-center justify-center flex-col">
-                    {previewUrl ? (
-                      <div className="relative mb-3">
-                        <img 
-                          src={previewUrl} 
-                          alt="Thumbnail preview" 
-                          className="w-48 h-32 object-cover rounded-md" 
-                        />
-                        <button 
-                          type="button" 
-                          onClick={() => {
-                            setPreviewUrl(null);
-                            setFormData(prev => ({ ...prev, thumbnail: null, thumbnailName: '' }));
-                          }}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 text-xs"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ) : (
-                      <FaUpload className="text-gray-400 text-3xl mb-2" />
-                    )}
-                    
-                    <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition duration-300">
-                      {formData.thumbnail ? 'Change Thumbnail' : 'Upload Thumbnail'}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileChange(e, 'thumbnail')}
-                        className="hidden"
-                      />
-                    </label>
-                    {formData.thumbnailName && (
-                      <p className="mt-2 text-sm text-gray-500 truncate max-w-full">
-                        {formData.thumbnailName}
-                      </p>
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
           </div>
 
-          {/* Course Sections */}
-          <div className={`${theme.card} rounded-lg p-6 shadow-md`}>
-            <h2 className="text-xl font-semibold mb-4 border-b pb-2">Course Content</h2>
-            
-            {formData.sections.map((section, index) => (
-              <div key={index} className={`mb-6 ${index > 0 ? 'border-t pt-6' : ''}`}>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium">
-                    Section {index + 1}
-                    {section.title && <span className="text-gray-500 ml-2">- {section.title}</span>}
-                  </h3>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => moveSection(index, 'up')}
-                      disabled={index === 0}
-                      className={`p-1 rounded ${index === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-200'}`}
-                      title="Move Up"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => moveSection(index, 'down')}
-                      disabled={index === formData.sections.length - 1}
-                      className={`p-1 rounded ${index === formData.sections.length - 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-200'}`}
-                      title="Move Down"
-                    >
-                      ↓
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeSection(index)}
-                      className="text-red-500 p-1 rounded hover:bg-red-100"
-                      title="Remove Section"
-                    >
-                      <FaTrash />
-                    </button>
-                  </div>
+          {/* Thumbnail Upload */}
+          <div className={`${theme.card} p-6 rounded-xl border ${theme.border}`}>
+            <h2 className="text-xl font-semibold mb-4">Course Thumbnail</h2>
+            <div className="flex items-center space-x-4">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  setFormData(prev => ({
+                    ...prev,
+                    thumbnail: file,
+                    thumbnailName: file.name
+                  }));
+                  setPreviewUrl(URL.createObjectURL(file));
+                }}
+                className="hidden"
+                id="thumbnail"
+                required
+              />
+              <label
+                htmlFor="thumbnail"
+                className={`flex-1 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:border-blue-500 transition-colors ${theme.border}`}
+              >
+                <div className="text-center">
+                  <FaUpload className="mx-auto text-2xl mb-2" />
+                  <p>Click to upload thumbnail</p>
+                  {formData.thumbnailName && (
+                    <p className="text-sm mt-2">{formData.thumbnailName}</p>
+                  )}
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-1">
-                      Section Title <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={section.title}
-                      onChange={(e) => updateSectionField(index, 'title', e.target.value)}
-                      className={`w-full rounded-md border p-2 text-black`}
-                      placeholder="E.g., Introduction to the Course"
-                      required
-                    />
+              </label>
+              {previewUrl && (
+                <img
+                  src={previewUrl}
+                  alt="Thumbnail preview"
+                  className="w-32 h-32 object-cover rounded-lg"
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Intro Video Upload */}
+          <div className={`${theme.card} p-6 rounded-xl border ${theme.border}`}>
+            <h2 className="text-xl font-semibold mb-4">Intro Video</h2>
+            <div className="flex items-center space-x-4">
+              <input
+                type="file"
+                accept="video/*"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  setFormData(prev => ({
+                    ...prev,
+                    introVideo: file,
+                    introVideoName: file.name
+                  }));
+                }}
+                className="hidden"
+                id="introVideo"
+                required
+              />
+              <label
+                htmlFor="introVideo"
+                className={`flex-1 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:border-blue-500 transition-colors ${theme.border}`}
+              >
+                <div className="text-center">
+                  <FaUpload className="mx-auto text-2xl mb-2" />
+                  <p>Click to upload intro video</p>
+                  {formData.introVideoName && (
+                    <p className="text-sm mt-2">{formData.introVideoName}</p>
+                  )}
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* Modules */}
+          <div className={`${theme.card} p-6 rounded-xl border ${theme.border}`}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Course Modules</h2>
+              <button
+                type="button"
+                onClick={addModule}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${theme.primary} text-white`}
+              >
+                <FaPlus />
+                <span>Add Module</span>
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {formData.modules.map((module, index) => (
+                <div key={index} className={`p-4 rounded-lg border ${theme.border}`}>
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-lg font-medium">Module {index + 1}</h3>
+                    <div className="flex space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => moveModuleUp(index)}
+                        disabled={index === 0}
+                        className={`text-blue-500 hover:text-blue-700 ${index === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title="Move Up"
+                      >
+                        <FaArrowUp />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveModuleDown(index)}
+                        disabled={index === formData.modules.length - 1}
+                        className={`text-blue-500 hover:text-blue-700 ${index === formData.modules.length - 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title="Move Down"
+                      >
+                        <FaArrowDown />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeModule(index)}
+                        className="text-red-500 hover:text-red-700"
+                        title="Remove Module"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
                   </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-1">Section Description</label>
-                    <textarea
-                      value={section.description || ''}
-                      onChange={(e) => updateSectionField(index, 'description', e.target.value)}
-                      className={`w-full rounded-md border p-2 text-black`}
-                      rows="2"
-                      placeholder="What will students learn in this section?"
-                    />
-                  </div>
-                  
-                  {renderVideoUpload(section, index)}
-                  
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Duration (minutes)</label>
-                    <input
-                      type="number"
-                      value={section.duration || ''}
-                      onChange={(e) => updateSectionField(index, 'duration', Number(e.target.value))}
-                      className={`w-full rounded-md border p-2 text-black`}
-                      placeholder="0"
-                      min="0"
-                    />
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-1">Materials</label>
-                    <div className={`border-2 border-dashed rounded-md p-3 ${theme.borderColor} hover:border-blue-400 transition duration-300`}>
-                      <div className="flex items-center justify-center">
-                        <label className="cursor-pointer flex items-center gap-2 w-full">
-                          <FaUpload className="text-gray-400" />
-                          <span className={`${section.materialsName ? '' : 'text-gray-400'} truncate`}>
-                            {section.materialsName || 'Upload Materials (PDF, ZIP, etc.)'}
-                          </span>
-                          <input
-                            type="file"
-                            onChange={(e) => handleFileChange(e, 'materials', index)}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Module Title <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={module.title}
+                        onChange={(e) => handleModuleChange(index, 'title', e.target.value)}
+                        className={`w-full rounded-md border p-2 text-black`}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Module Video <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="file"
+                        accept="video/*"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          handleModuleChange(index, 'video', file);
+                          handleModuleChange(index, 'videoName', file.name);
+                        }}
+                        className="hidden"
+                        id={`module-video-${index}`}
+                        required
+                      />
+                      <label
+                        htmlFor={`module-video-${index}`}
+                        className={`block w-full p-4 border-2 border-dashed rounded-lg cursor-pointer hover:border-blue-500 transition-colors ${theme.border}`}
+                      >
+                        <div className="text-center">
+                          <FaUpload className="mx-auto text-2xl mb-2" />
+                          <p>Click to upload module video</p>
+                          {module.videoName && (
+                            <p className="text-sm mt-2">{module.videoName}</p>
+                          )}
+                        </div>
+                      </label>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Additional Materials
+                      </label>
+                      <input
+                        type="file"
+                        multiple
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files);
+                          handleModuleChange(index, 'materials', [...module.materials, ...files]);
+                          handleModuleChange(index, 'materialNames', [
+                            ...module.materialNames,
+                            ...files.map(f => f.name)
+                          ]);
+                        }}
+                        className="hidden"
+                        id={`module-materials-${index}`}
+                      />
+                      <label
+                        htmlFor={`module-materials-${index}`}
+                        className={`block w-full p-4 border-2 border-dashed rounded-lg cursor-pointer hover:border-blue-500 transition-colors ${theme.border}`}
+                      >
+                        <div className="text-center">
+                          <FaUpload className="mx-auto text-2xl mb-2" />
+                          <p>Click to upload materials</p>
+                          {module.materialNames.length > 0 && (
+                            <p className="text-sm mt-2">
+                              {module.materialNames.length} files selected
+                            </p>
+                          )}
+                        </div>
+                      </label>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-
-            <button
-              type="button"
-              onClick={() => setFormData(prev => ({
-                ...prev,
-                sections: [...prev.sections, { 
-                  title: '', 
-                  description: '', 
-                  video: null, 
-                  materials: null, 
-                  duration: 0,
-                  videoName: '',
-                  materialsName: ''
-                }]
-              }))}
-              className={`w-full ${theme.borderColor} rounded-lg p-3 border-2 border-dashed flex items-center justify-center gap-2 hover:border-blue-400 transition duration-300`}
-            >
-              <FaPlus />
-              Add New Section
-            </button>
+              ))}
+            </div>
           </div>
 
-          <div className="flex gap-4 mt-8">
-            <button
-              type="button"
-              onClick={resetForm}
-              className="flex-1 bg-gray-500 text-white rounded-lg p-3 hover:bg-gray-600 transition duration-300"
-            >
-              Reset Form
-            </button>
-            
+          {/* Submit Button */}
+          <div className="flex justify-end">
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-blue-600 text-white rounded-lg p-3 hover:bg-blue-700 disabled:opacity-50 transition duration-300"
+              className={`px-6 py-3 rounded-lg font-medium text-white bg-gradient-to-r ${theme.primary} hover:shadow-lg transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {loading ? (
-                <span className="flex items-center justify-center">
+                <span className="flex items-center">
                   <FaSpinner className="animate-spin mr-2" />
                   Creating Course...
                 </span>
@@ -627,6 +541,22 @@ const CreateCourse = () => {
               )}
             </button>
           </div>
+
+          {/* Upload Progress */}
+          {uploadProgress > 0 && uploadProgress < 100 && (
+            <div className="mt-4">
+              <div className="flex justify-between mb-1">
+                <span className="text-sm">Upload Progress</span>
+                <span className="text-sm">{Math.round(uploadProgress)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div
+                  className="bg-blue-600 h-2.5 rounded-full"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
         </form>
       </div>
     </div>
