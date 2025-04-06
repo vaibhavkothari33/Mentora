@@ -798,7 +798,7 @@ const AIAssignment = () => {
         return (
           <div className="mb-4">
             {message.heading && (
-              <div className={`flex text-red-600 items-center gap-2 mb-3 ${
+              <div className={`flex text-white items-center gap-2 mb-3 ${
                 darkMode ? 'text-gray-300' : 'text-gray-700'
               }`}>
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
