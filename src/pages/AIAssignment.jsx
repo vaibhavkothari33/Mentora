@@ -510,7 +510,6 @@ const GitHubRepoSelector = ({ onSelect, selectedRepo, darkMode, onRepoSelect }) 
 const AIAssignment = () => {
   const { id } = useParams();
   const { darkMode } = useTheme();
-  const { getClient } = useAssignmentManager();
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [solution, setSolution] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -530,34 +529,6 @@ const AIAssignment = () => {
     logProgressActive,
     sendMessage
   } = useChat();
-
-  useEffect(() => {
-    const fetchAssignment = async () => {
-      try {
-        setLoading(true);
-        const client = getClient();
-        const assignment = await client.getAssignment(parseInt(id));
-        setSelectedAssignment({
-          id,
-          checkpoints: assignment.evaluationCriteria.split('\n\n').map((check, index) => ({
-            id: index + 1,
-            title: check.split('\n')[0].replace(/Task \d+: /, ""),
-            description: check.split('\n').slice(1).join('\n'),
-          })),
-          ...assignment
-        });
-      } catch (err) {
-        console.error('Error fetching assignment:', err);
-        setError('Failed to load assignment. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchAssignment();
-    }
-  }, [id, getClient]);
 
   // Check if should show scroll button when messages change
   useEffect(() => {
@@ -582,6 +553,29 @@ const AIAssignment = () => {
       scrollToBottom();
     }
   }, [messages.length]);
+
+  // Add this effect to send the assignment to AI when it's selected
+  useEffect(() => {
+    if (selectedAssignment && isConnected) {
+      const assignmentPrompt = `
+Assignment Details:
+Title: ${selectedAssignment.title}
+Description: ${selectedAssignment.description}
+Difficulty: ${selectedAssignment.difficulty}
+Estimated Time: ${selectedAssignment.estimatedTime}
+
+Checkpoints:
+${selectedAssignment.checkpoints.map(checkpoint => 
+  `- ${checkpoint.title}: ${checkpoint.description}`
+).join('\n')}
+
+Please analyze this assignment and provide guidance on how to approach it.
+      `.trim();
+
+      // Send the assignment details to the AI
+      sendMessage(assignmentPrompt);
+    }
+  }, [selectedAssignment, isConnected, sendMessage]);
 
   // Memoize the renderAIResponse function to prevent unnecessary re-renders
   const renderAIResponse = useCallback((message) => {
@@ -905,7 +899,7 @@ const AIAssignment = () => {
     }
   }, [darkMode]);
 
-  // Memoize the handleSolutionSubmit function
+  // Update handleSolutionSubmit to include assignment context
   const handleSolutionSubmit = useCallback(async () => {
     if (!isConnected || !selectedRepo.trim()) return;
 
@@ -922,16 +916,18 @@ const AIAssignment = () => {
       const githubUrl = githubUrlMatch[1];
       const prompt = selectedAssignment.metaPrompt.replace('{{ github_link }}', githubUrl);
       
-      // Send the prompt directly
-      await sendMessage(prompt);
+      // Send only the GitHub URL directly
+      await sendMessage(githubUrl);
+      
+      // Clear solution after submission
+      setSolution('');
     } catch (error) {
       console.error('Error:', error);
-      // Show error to the user
       setError(error.message || 'Failed to submit solution');
     } finally {
       setSubmitting(false);
     }
-  }, [isConnected, sendMessage, selectedRepo, selectedAssignment]);
+  }, [isConnected, sendMessage, solution]);
 
   const toggleCheckpoints = (assignmentId) => {
     setExpandedCheckpoints(prev => ({
@@ -1149,16 +1145,47 @@ const AIAssignment = () => {
               </h2>
               
               <div className="space-y-4">
+                <select
+                  value={selectedAssignment?.id || ''}
+                  onChange={(e) => {
+                    const assignment = assignments.find(a => a.id === e.target.value);
+                    setSelectedAssignment(assignment);
+                  }}
+                  className={`w-full p-3 rounded-xl border transition-colors
+                    ${darkMode
+                      ? 'bg-gray-700 border-gray-600 text-gray-100 focus:border-blue-500'
+                      : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
+                    } focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                >
+                  <option value="">Select an assignment</option>
+                  {assignments.map(assignment => (
+                    <option key={assignment.id} value={assignment.id}>
+                      {assignment.title}
+                    </option>
+                  ))}
+                </select>
 
                 {selectedAssignment && (
                   <div className="space-y-4">
                     <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
                       <h3 className={`text-lg font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {selectedAssignment.title}
-                  </h3>
+                        {selectedAssignment.title}
+                      </h3>
                       <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     {selectedAssignment.description}
                   </p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          darkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {selectedAssignment.estimatedTime}
+                        </span>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          darkMode ? 'bg-purple-900/30 text-purple-400' : 'bg-purple-100 text-purple-800'
+                        }`}>
+                          {selectedAssignment.difficulty}
+                    </span>
+                  </div>
                 </div>
 
                     <div>
@@ -1210,6 +1237,12 @@ const AIAssignment = () => {
                         </div>
                       )}
                     </div>
+                  </div>
+                ) : (
+                  <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                    <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      No assignment selected. Please select an assignment from the Assignments page.
+                    </p>
                   </div>
                 )}
               </div>

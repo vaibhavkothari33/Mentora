@@ -1,211 +1,266 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { FaPlay, FaUser, FaClock, FaBook, FaCertificate, FaChalkboardTeacher, 
-         FaStar, FaEthereum, FaLinkedin, FaGithub, FaGlobe, FaDownload } from 'react-icons/fa';
+import { useParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { FaStar, FaUsers, FaClock, FaBook, FaChalkboardTeacher, FaGraduationCap, FaCode, FaPlay } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
 import { useMentoraContract } from '../hooks/useMentoraContract';
 import ipfsService from '../utils/ipfsStorage';
 
 const CourseDetails = () => {
-  const { courseId } = useParams();
+  const { id } = useParams();
   const { theme } = useTheme();
-  const navigate = useNavigate();
   const { getClient } = useMentoraContract();
-
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [courseContent, setCourseContent] = useState(null);
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
-    const fetchCourse = async () => {
+    fetchCourseDetails();
+  }, [id]);
+
+  const fetchCourseDetails = async () => {
+    try {
+      setLoading(true);
+      const client = getClient();
+      const courseInfo = await client.getCourseInfo(id);
+      const courseStats = await client.getCourseStats(id);
+      const contentIpfsHash = await client.getCoursePreview(id);
+      
+      let courseContent = null;
       try {
-        const client = getClient();
-        const courseData = await client.getCourseInfo(courseId);
-        setCourse(courseData);
+        const content = await ipfsService.retrieveFile(contentIpfsHash);
         
-        // Fetch course content from IPFS
-        const contentURI = await client.getCourseContentURI(courseId);
-        if (contentURI) {
-          const content = await ipfsService.retrieveJSON(contentURI);
-          setCourseContent(content);
+        // Debug logging
+        console.log('Content type:', Object.prototype.toString.call(content));
+        console.log('Raw content:', content);
+        
+        // Handle ArrayBuffer
+        if (content instanceof ArrayBuffer) {
+          const decoder = new TextDecoder('utf-8');
+          const contentString = decoder.decode(content);
+          console.log('Decoded content:', contentString);
+          
+          try {
+            const contentJSON = JSON.parse(contentString);
+            courseContent = contentJSON;
+          } catch (parseError) {
+            console.error('JSON parsing error:', parseError);
+            // Fallback to raw string if JSON parsing fails
+            courseContent = contentString;
+          }
+        } else if (typeof content === 'string') {
+          try {
+            const contentJSON = JSON.parse(content);
+            courseContent = contentJSON;
+          } catch (parseError) {
+            console.error('String parsing error:', parseError);
+            courseContent = content;
+          }
+        } else {
+          console.log('Content is neither ArrayBuffer nor string:', typeof content);
+          courseContent = content;
         }
       } catch (err) {
-        console.error('Error fetching course:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
+        console.error('Error fetching course content:', err);
+        setError('Failed to load course content');
       }
-    };
 
-    fetchCourse();
-  }, [courseId, getClient]);
+      setCourse({
+        ...courseInfo,
+        ...courseStats,
+        content: courseContent
+      });
+    } catch (err) {
+      setError('Failed to load course details');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
-      <div className={`min-h-screen ${theme.background} ${theme.text.primary} flex flex-col items-center justify-center`}>
-        <p>Loading course details...</p>
+      <div className={`min-h-screen ${theme.background} ${theme.text.primary} flex items-center justify-center`}>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
   if (error || !course) {
     return (
-      <div className={`min-h-screen ${theme.background} ${theme.text.primary} flex flex-col items-center justify-center`}>
-        <h2 className="text-2xl font-bold mb-4">Course Not Found</h2>
-        <button 
-          onClick={() => navigate('/courses')}
-          className={`bg-gradient-to-r ${theme.primary} text-white px-6 py-2 rounded-lg`}
-        >
-          Return to Courses
-        </button>
+      <div className={`min-h-screen ${theme.background} ${theme.text.primary} flex items-center justify-center`}>
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Error Loading Course</h2>
+          <p className="text-red-500">{error}</p>
+        </div>
       </div>
     );
   }
 
-  const getDifficultyLabel = (level) => {
-    switch (level) {
-      case 1: return "Beginner";
-      case 2: return "Intermediate";
-      case 3: return "Advanced";
-      default: return "All Levels";
-    }
-  };
-
   return (
-    <div className={`min-h-screen ${theme.background} ${theme.text.primary} py-12 px-4 sm:px-6 lg:px-8`}>
-      <div className="max-w-7xl mx-auto">
-        {/* Navigation */}
-        <div className="mb-8">
-          <Link 
-            to="/courses" 
-            className={`${theme.text.secondary} hover:${theme.text.accent} flex items-center`}
+    <div className={`min-h-screen ${theme.background} ${theme.text.primary}`}>
+      {/* Hero Section */}
+      <div className="relative h-[400px]">
+        <div className="absolute inset-0">
+          <img
+            src={ipfsService.getIPFSUrl(course.thumbnailIpfsHash)}
+            alt={course.title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+        </div>
+        
+        <div className="relative max-w-7xl mx-auto px-4 py-20 text-white">
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-4xl md:text-5xl font-bold mb-4"
           >
-            ← Back to Courses
-          </Link>
+            {course.title}
+          </motion.h1>
+          
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="flex flex-wrap items-center gap-6 mb-8"
+          >
+            <div className="flex items-center gap-2">
+              <FaChalkboardTeacher />
+              <span>{course.instructor}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <FaStar className="text-yellow-400" />
+              <span>{course.rating || '4.5'} ({course.totalSales} students)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <FaClock />
+              <span>{course.duration} total hours</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <FaGraduationCap />
+              <span>
+                {course.difficulty === 1 ? 'Beginner' :
+                 course.difficulty === 2 ? 'Intermediate' :
+                 'Advanced'} Level
+              </span>
+            </div>
+          </motion.div>
+          
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="flex gap-4"
+          >
+            <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-medium transition-colors">
+              Enroll Now • {parseFloat(course.price).toFixed(4)} ETH
+            </button>
+            <button className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-medium transition-colors">
+              Preview Course
+            </button>
+          </motion.div>
         </div>
+      </div>
 
-        {/* Course Header */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+      {/* Course Content */}
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            <h1 className="text-4xl font-bold mb-4">{course.title}</h1>
-            <p className={`${theme.text.secondary} text-lg mb-6`}>
-              {course.description}
-            </p>
-            <div className="flex flex-wrap gap-4 mb-4">
-              <span className={`flex items-center ${theme.text.secondary}`}>
-                <FaUser className="mr-2" /> {course.enrolledUsers} enrolled
-              </span>
-              <span className={`flex items-center ${theme.text.secondary}`}>
-                <FaBook className="mr-2" /> {course.moduleCount} modules
-              </span>
-              <span className={`flex items-center ${theme.text.secondary}`}>
-                <FaClock className="mr-2" /> {Math.floor(course.duration / 60)}h {course.duration % 60}m
-              </span>
-              <span className={`flex items-center ${theme.text.secondary}`}>
-                <FaStar className="mr-2" /> {getDifficultyLabel(course.difficulty)}
-              </span>
-              <span className={`flex items-center ${theme.text.secondary}`}>
-                <FaChalkboardTeacher className="mr-2" /> {course.category}
-              </span>
-            </div>
-            
-            {/* Intro Video */}
-            {courseContent && courseContent.introVideoIpfsHash && (
-              <div className="mt-6">
-                <h3 className="text-xl font-semibold mb-3">Course Introduction</h3>
-                <div className="aspect-w-16 aspect-h-9">
-                  <video 
-                    src={ipfsService.getIPFSUrl(courseContent.introVideoIpfsHash)}
-                    controls
-                    poster={ipfsService.getIPFSUrl(course.thumbnailIpfsHash)}
-                    className="w-full rounded-lg"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Enrollment Card */}
-          <div className={`${theme.card} rounded-xl shadow-lg p-6 border ${theme.border}`}>
-            <div className="text-center mb-6">
-              <img 
-                src={ipfsService.getIPFSUrl(course.thumbnailIpfsHash)}
-                alt={course.title}
-                className="w-full h-48 object-cover rounded-lg mb-4"
-              />
-              <div className="flex items-center justify-center mb-4">
-                <FaEthereum className={`text-2xl ${theme.text.accent} mr-2`} />
-                <span className="text-3xl font-bold">{course.price} ETH</span>
-              </div>
-              <button 
-                className={`w-full bg-gradient-to-r ${theme.primary} text-white py-3 rounded-lg hover:shadow-lg transform transition-all duration-200 hover:scale-105 ${!course.isActive && 'opacity-50 cursor-not-allowed'}`}
-                disabled={!course.isActive}
-              >
-                {course.isActive ? 'Enroll Now' : 'Currently Unavailable'}
-              </button>
-            </div>
-            <div className="text-sm text-center">
-              <p>Total Sales: {course.totalSales}</p>
-              <p>Course ID: {course.id}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Course Content */}
-        {courseContent && courseContent.moduleTitles && (
-          <div className={`${theme.card} rounded-xl p-6 border ${theme.border} mb-12`}>
-            <h2 className="text-2xl font-bold mb-6">Course Content</h2>
-            <div className="space-y-4">
-              {courseContent.moduleTitles.map((title, index) => (
-                <div key={index} className={`p-4 rounded-lg border ${theme.border}`}>
-                  <h3 className="text-lg font-semibold mb-2">Module {index + 1}: {title}</h3>
-                  <div className="flex items-center mb-3">
-                    <FaPlay className={`mr-2 ${theme.text.secondary}`} />
-                    <a 
-                      href={ipfsService.getIPFSUrl(courseContent.moduleIpfsHashes[index])}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`${theme.text.accent} hover:underline`}
-                    >
-                      Watch Module Video
-                    </a>
-                  </div>
-                  
-                  {courseContent.materialIpfsHashes && courseContent.materialIpfsHashes[index] && 
-                   courseContent.materialIpfsHashes[index].length > 0 && (
-                    <div>
-                      <h4 className="font-medium mb-2">Additional Materials:</h4>
-                      <ul className="space-y-2">
-                        {courseContent.materialIpfsHashes[index].map((materialHash, matIndex) => (
-                          <li key={matIndex} className="flex items-center">
-                            <FaDownload className={`mr-2 ${theme.text.secondary}`} />
-                            <a 
-                              href={ipfsService.getIPFSUrl(materialHash)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={`${theme.text.accent} hover:underline`}
-                            >
-                              Material {matIndex + 1}
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
+            {/* Tabs */}
+            <div className="flex gap-4 mb-8 border-b border-gray-200 dark:border-gray-700">
+              {['overview', 'curriculum', 'instructor', 'reviews'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-2 font-medium capitalize transition-colors ${
+                    activeTab === tab 
+                      ? 'text-blue-600 border-b-2 border-blue-600' 
+                      : theme.text.secondary
+                  }`}
+                >
+                  {tab}
+                </button>
               ))}
             </div>
-          </div>
-        )}
 
-        {/* Creator Section */}
-        <div className={`${theme.card} rounded-xl p-6 border ${theme.border} mb-12`}>
-          <h2 className="text-2xl font-bold mb-6">Creator</h2>
-          <div className="flex items-center space-x-4">
-            <div>
-              <h3 className="font-semibold">Creator Address</h3>
-              <p className={theme.text.secondary}>{course.creator}</p>
+            {/* Tab Content */}
+            <div className="space-y-8">
+              {activeTab === 'overview' && (
+                <div>
+                  <h3 className="text-2xl font-bold mb-4">Course Description</h3>
+                  <p className={theme.text.secondary}>{course.description}</p>
+                  
+                  <div className="mt-8">
+                    <h4 className="text-xl font-bold mb-4">What you'll learn</h4>
+                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {course.content?.learningObjectives?.map((objective, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <FaCheck className="mt-1 text-green-500 flex-shrink-0" />
+                          <span>{objective}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+              
+              {activeTab === 'curriculum' && (
+                <div>
+                  <h3 className="text-2xl font-bold mb-4">Course Curriculum</h3>
+                  <div className="space-y-4">
+                    {course.content?.chapters?.map((chapter, index) => (
+                      <div
+                        key={index}
+                        className={`p-4 rounded-lg ${theme.card}`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium">{chapter.title}</h4>
+                          <span className={theme.text.secondary}>
+                            {chapter.duration} min
+                          </span>
+                        </div>
+                        <ul className="space-y-2">
+                          {chapter.lessons?.map((lesson, lIndex) => (
+                            <li
+                              key={lIndex}
+                              className="flex items-center gap-2 text-sm"
+                            >
+                              <FaPlay className="text-blue-500" />
+                              <span>{lesson.title}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <div className={`${theme.card} rounded-xl p-6 sticky top-4`}>
+              <h3 className="text-xl font-bold mb-4">Course Features</h3>
+              <ul className="space-y-4">
+                <li className="flex items-center justify-between">
+                  <span>Lectures</span>
+                  <span className="font-medium">{course.content?.chapters?.length || 0}</span>
+                </li>
+                <li className="flex items-center justify-between">
+                  <span>Duration</span>
+                  <span className="font-medium">{course.duration} hours</span>
+                </li>
+                <li className="flex items-center justify-between">
+                  <span>Enrolled</span>
+                  <span className="font-medium">{course.enrolledUsers} students</span>
+                </li>
+                <li className="flex items-center justify-between">
+                  <span>Certificate</span>
+                  <span className="font-medium">Yes</span>
+                </li>
+              </ul>
             </div>
           </div>
         </div>

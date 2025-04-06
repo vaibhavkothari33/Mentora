@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FaStar, FaUsers, FaClock, FaFilter, FaBook, FaChalkboardTeacher, FaGraduationCap, FaCode, FaTimes, FaEthereum, FaCertificate } from 'react-icons/fa';
+import { FaStar, FaUsers, FaClock, FaFilter, FaBook, FaChalkboardTeacher, FaGraduationCap, FaCode, FaTimes, FaEthereum, FaCertificate, FaWallet, FaCheck, FaSpinner } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
 import { useMentoraContract } from '../hooks/useMentoraContract';
 import ipfsService from '../utils/ipfsStorage';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
+import { useAccount, useBalance } from 'wagmi';
+import { ethers } from 'ethers';
+import { toast } from 'react-hot-toast';
 
 const CourseModal = ({ isOpen, setIsOpen, course, theme }) => {
   return (
@@ -272,6 +275,161 @@ const CourseCard = ({ course, theme }) => {
   );
 };
 
+const BuyCourseButton = ({ course, theme }) => {
+  const { address } = useAccount();
+  const { data: balance } = useBalance({ address });
+  const [purchasing, setPurchasing] = useState(false);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const { purchaseCourse, checkEnrollment } = useCourseContract();
+
+  // Check if user is already enrolled
+  useEffect(() => {
+    const checkUserEnrollment = async () => {
+      if (address && course.id) {
+        try {
+          const enrolled = await checkEnrollment(course.id, address);
+          setIsEnrolled(enrolled);
+        } catch (error) {
+          console.error('Error checking enrollment:', error);
+        }
+      }
+    };
+
+    checkUserEnrollment();
+  }, [address, course.id]);
+
+  const handlePurchase = async () => {
+    if (!address) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    if (isEnrolled) {
+      toast.error('You are already enrolled in this course');
+      return;
+    }
+
+    try {
+      setPurchasing(true);
+      
+      // Convert course price to Wei
+      const priceInWei = ethers.utils.parseEther(course.price.toString());
+      
+      // Check if user has enough balance
+      if (balance?.value.lt(priceInWei)) {
+        toast.error('Insufficient balance to purchase this course');
+        return;
+      }
+
+      // Show confirmation toast
+      const confirmed = window.confirm(
+        `Are you sure you want to purchase "${course.title}" for ${course.price} ETH?`
+      );
+
+      if (!confirmed) {
+        setPurchasing(false);
+        return;
+      }
+
+      // Create loading toast
+      const loadingToast = toast.loading('Processing your purchase...');
+
+      try {
+        // Call the contract to purchase the course
+        await purchaseCourse(course.id, course.price);
+
+        // Success! Update UI and show success message
+        toast.success('Successfully enrolled in the course!', {
+          id: loadingToast,
+        });
+        
+        // Update enrollment status
+        setIsEnrolled(true);
+        
+        // Redirect to course page
+        setTimeout(() => {
+          window.location.href = `/course/${course.id}`;
+        }, 2000);
+      } catch (error) {
+        // Handle specific error cases
+        let errorMessage = 'Failed to purchase course';
+        
+        if (error.code === 'ACTION_REJECTED') {
+          errorMessage = 'Transaction was rejected';
+        } else if (error.message.includes('insufficient funds')) {
+          errorMessage = 'Insufficient funds for transaction';
+        }
+        
+        toast.error(errorMessage, {
+          id: loadingToast,
+        });
+        
+        console.error('Purchase error:', error);
+      }
+    } catch (error) {
+      console.error('Transaction error:', error);
+      toast.error(error.message || 'Failed to process transaction');
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
+  // Render different button states
+  const renderButtonContent = () => {
+    if (!address) {
+      return (
+        <>
+          <FaWallet className="text-xl" />
+          <span>Connect Wallet to Purchase</span>
+        </>
+      );
+    }
+
+    if (isEnrolled) {
+      return (
+        <>
+          <FaCheck className="text-xl" />
+          <span>Enrolled</span>
+        </>
+      );
+    }
+
+    if (purchasing) {
+      return (
+        <>
+          <FaSpinner className="animate-spin text-xl" />
+          <span>Processing Purchase...</span>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <FaEthereum className="text-xl" />
+        <span>Buy Course for {parseFloat(course.price).toFixed(4)} ETH</span>
+      </>
+    );
+  };
+
+  return (
+    <motion.button
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={handlePurchase}
+      disabled={purchasing || isEnrolled || !address}
+      className={`w-full px-6 py-3 rounded-xl font-medium flex items-center justify-center gap-2
+        ${isEnrolled 
+          ? 'bg-green-600 cursor-not-allowed'
+          : purchasing 
+            ? 'bg-gray-400 cursor-not-allowed' 
+            : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90'
+        } text-white transition-all shadow-lg`}
+    >
+      {renderButtonContent()}
+    </motion.button>
+  );
+};
+
 const Courses = () => {
   const { theme } = useTheme();
   const { getClient } = useMentoraContract();
@@ -300,11 +458,34 @@ const Courses = () => {
           // Fetch course content for preview
           const contentIpfsHash = await client.getCoursePreview(i);
           let courseContent = null;
+          
           try {
+            // Convert ArrayBuffer to text before parsing
             const content = await ipfsService.retrieveFile(contentIpfsHash);
-            courseContent = JSON.parse(content);
+            if (content instanceof ArrayBuffer) {
+              // Convert ArrayBuffer to text
+              const decoder = new TextDecoder('utf-8');
+              const textContent = decoder.decode(content);
+              try {
+                courseContent = JSON.parse(textContent);
+              } catch (parseError) {
+                console.error(`Error parsing JSON for course ${i}:`, parseError);
+                courseContent = { error: 'Invalid JSON format' };
+              }
+            } else if (typeof content === 'string') {
+              try {
+                courseContent = JSON.parse(content);
+              } catch (parseError) {
+                console.error(`Error parsing JSON string for course ${i}:`, parseError);
+                courseContent = { error: 'Invalid JSON format' };
+              }
+            } else {
+              console.error(`Unexpected content type for course ${i}:`, typeof content);
+              courseContent = { error: 'Unexpected content type' };
+            }
           } catch (err) {
             console.error(`Error fetching course content for course ${i}:`, err);
+            courseContent = { error: 'Failed to fetch content' };
           }
 
           fetchedCourses.push({
@@ -420,7 +601,7 @@ const Courses = () => {
 
         {/* Courses Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredCourses.map((course, index) => (
+          {filteredCourses.map((course) => (
             <CourseCard 
               key={course.id} 
               course={course} 
