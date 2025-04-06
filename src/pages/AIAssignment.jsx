@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { useChat } from '../hooks/useAgent';
 import { FaSpinner, FaArrowDown, FaPaperPlane, FaGithub, FaCheck, FaTasks, FaCode, FaChevronDown } from 'react-icons/fa';
-import { IoInformationCircle } from 'react-icons/io5';
+// import { IoInformationCircle } from 'react-icons/io5';
 import { MdError, MdOutlineSmartToy } from 'react-icons/md';
 import { assignments } from '../data/assignments';
 
@@ -437,14 +437,20 @@ const GitHubRepoSelector = ({ onSelect, selectedRepo, darkMode, onRepoSelect }) 
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`absolute w-full mt-2 rounded-xl border shadow-lg overflow-hidden ${
+                  className={`absolute w-full mt-2 rounded-xl border shadow-lg overflow-hidden z-50 ${
                     darkMode
                       ? 'bg-gray-700 border-gray-600'
                       : 'bg-white border-gray-200'
                   }`}
-                  style={{ maxHeight: '400px' }} // Fixed height for dropdown
+                  style={{ 
+                    maxHeight: '400px',
+                    overflowY: 'auto',
+                    // Add custom scrollbar styling
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: darkMode ? '#4B5563 #1F2937' : '#E5E7EB #F3F4F6'
+                  }}
                 >
-                  <div className="overflow-y-auto h-full">
+                  <div className="h-full">
                     {repos
                       .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
                       .map((repo) => (
@@ -550,6 +556,53 @@ const AIAssignment = () => {
 
     const formatContent = (content) => {
       try {
+        // First, check if content looks like a git clone output
+        if (content.includes('Cloning into') || content.includes('remote:') || content.includes('Receiving objects')) {
+          return (
+            <div className={`rounded-xl overflow-hidden ${
+              darkMode ? 'bg-gray-800' : 'bg-gray-50'
+            } border ${
+              darkMode ? 'border-gray-700' : 'border-gray-200'
+            }`}>
+              {/* Terminal Header */}
+              <div className={`px-4 py-2 border-b flex items-center justify-between ${
+                darkMode ? 'bg-gray-900 border-gray-700' : 'bg-gray-100 border-gray-200'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                </div>
+                <span className={`text-xs ${
+                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Git Output</span>
+              </div>
+              
+              {/* Terminal Content */}
+              <div className={`p-4 font-mono text-sm whitespace-pre-wrap ${
+                darkMode ? 'text-gray-300 bg-gray-800' : 'text-gray-700 bg-gray-50'
+              }`}>
+                {content.split('\n').map((line, index) => {
+                  let lineColor = '';
+                  if (line.startsWith('remote:')) {
+                    lineColor = darkMode ? 'text-blue-400' : 'text-blue-600';
+                  } else if (line.includes('Cloning into')) {
+                    lineColor = darkMode ? 'text-green-400' : 'text-green-600';
+                  } else if (line.includes('error') || line.includes('fatal')) {
+                    lineColor = darkMode ? 'text-red-400' : 'text-red-600';
+                  }
+                  
+                  return (
+                    <div key={index} className={`${lineColor}`}>
+                      {line}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        }
+
         // First, check if it's a GitHub URL
         if (typeof content === 'string' && content.startsWith('https://github.com/')) {
         return (
@@ -754,7 +807,8 @@ const AIAssignment = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                         d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                <h3 className="font-medium">{message.heading}</h3>
+                <h3 className="font-medium">Generating Response</h3>
+                {/* <h3 className="font-medium">{message.heading}</h3> */}
               </div>
             )}
             {formatContent(message.content)}
