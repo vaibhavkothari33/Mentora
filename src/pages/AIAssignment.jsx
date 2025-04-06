@@ -417,12 +417,22 @@ const GitHubRepoSelector = ({ onSelect, selectedRepo, darkMode, onRepoSelect }) 
     );
 };
 
+// Add this utility function before the AIAssignment component
+const convertToTitleCase = (str) => {
+  return str
+    .replace(/_/g, " ") // Replace underscores with spaces
+    .toLowerCase() // Convert the entire string to lowercase
+    .replace(/\b\w/g, function (match) {
+      return match.toUpperCase(); // Capitalize the first letter of each word
+    });
+};
+
 const AIAssignment = () => {
   const { id } = useParams();
   const { darkMode } = useTheme();
   const { getClient } = useAssignmentManager();
   const [selectedAssignment, setSelectedAssignment] = useState(null);
-  const [solution, setSolution] = useState('');
+  // const [solution, setSolution] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -497,249 +507,258 @@ const AIAssignment = () => {
   // Memoize the renderAIResponse function to prevent unnecessary re-renders
   const renderAIResponse = useCallback((message) => {
     if (!message || !message.content) return null;
-
+  
     const formatContent = (content) => {
       try {
-        // First, check if content looks like a git clone output
-        if (content.includes('Cloning into') || content.includes('remote:') || content.includes('Receiving objects')) {
-          return (
-            <div className={`rounded-xl overflow-hidden ${
-              darkMode ? 'bg-gray-800' : 'bg-gray-50'
-            } border ${
-              darkMode ? 'border-gray-700' : 'border-gray-200'
-            }`}>
-              {/* Terminal Header */}
-              <div className={`px-4 py-2 border-b flex items-center justify-between ${
-                darkMode ? 'bg-gray-900 border-gray-700' : 'bg-gray-100 border-gray-200'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                </div>
-                <span className={`text-xs ${
-                  darkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}>Git Output</span>
-              </div>
-              
-              {/* Terminal Content */}
-              <div className={`p-4 font-mono text-sm whitespace-pre-wrap ${
-                darkMode ? 'text-gray-300 bg-gray-800' : 'text-gray-700 bg-gray-50'
-              }`}>
-                {content.split('\n').map((line, index) => {
-                  let lineColor = '';
-                  if (line.startsWith('remote:')) {
-                    lineColor = darkMode ? 'text-blue-400' : 'text-blue-600';
-                  } else if (line.includes('Cloning into')) {
-                    lineColor = darkMode ? 'text-green-400' : 'text-green-600';
-                  } else if (line.includes('error') || line.includes('fatal')) {
-                    lineColor = darkMode ? 'text-red-400' : 'text-red-600';
-                  }
-                  
-                  return (
-                    <div key={index} className={`${lineColor}`}>
-                      {line}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        }
-
-        // First, check if it's a GitHub URL
-        if (typeof content === 'string' && content.startsWith('https://github.com/')) {
-        return (
-            <div className={`rounded-lg p-4 ${
-              darkMode ? 'bg-gray-800' : 'bg-blue-50'
-            } border ${
-              darkMode ? 'border-gray-700' : 'border-blue-200'
-            }`}>
-              <div className="flex items-center space-x-3">
-                <FaGithub className={`h-5 w-5 ${
-                  darkMode ? 'text-gray-300' : 'text-blue-600'
-                }`} />
-                <span className={`font-medium ${
-                  darkMode ? 'text-gray-200' : 'text-blue-700'
-                }`}>
-                  Selected Repository:
-                </span>
-                <a 
-                  href={content}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`text-sm hover:underline ${
-                    darkMode ? 'text-blue-400' : 'text-blue-600'
-                  }`}
-                >
-                  {content.replace('https://github.com/', '')}
-                </a>
-              </div>
-          </div>
-        );
-      }
-    
-        // Check if content is JSON
-        if (content.startsWith('```json')) {
-          const jsonContent = content.replace(/```json\n|\n```/g, '');
-          const parsed = JSON.parse(jsonContent);
+        // Check if the entire content is valid JSON (not just code blocks)
+        try {
+          const parsed = JSON.parse(content);
           
-          if (parsed.thoughts) {
-            // Enhanced UI for agent thoughts and response
-      return (
-        <div className="space-y-4">
-                {/* Main Response Box */}
-                <div className={`rounded-xl p-6 ${
-                  darkMode 
-                    ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700' 
-                    : 'bg-gradient-to-br from-white to-gray-50 border border-gray-200'
-                } shadow-lg relative overflow-hidden`}>                  {/* Decorative Elements */}
-                  <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/5 rounded-full -mr-20 -mt-20 transform rotate-45"></div>
-                  <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/5 rounded-full -ml-16 -mb-16"></div>
-                  
-                  {/* Response Content */}
-                  <div className="relative z-10">
-                    <div className={`prose ${darkMode ? 'prose-invert' : ''} max-w-none`}>
-                      <ReactMarkdown>{parsed.tool_args?.text || ''}</ReactMarkdown>
+          if (parsed.thoughts && parsed.tool_args) {
+            return (
+              <div className="space-y-4">
+                {/* Tool Output Section */}
+                {parsed.tool_args.text && (
+                  <div className={`rounded-xl p-6 ${
+                    darkMode 
+                      ? 'bg-gray-800 border border-gray-700' 
+                      : 'bg-white border border-gray-200'
+                  } shadow-lg`}>
+                    <div className={`prose ${darkMode ? 'prose-invert' : ''} max-w-none text-white`}>
+                      <ReactMarkdown>{parsed.tool_args.text}</ReactMarkdown>
                     </div>
                   </div>
-                </div>
+                )}
                 
                 {/* Thoughts Section */}
-                <details className="group">
-                  <summary className={`flex items-center gap-3 cursor-pointer p-3 rounded-lg transition-colors ${
-                    darkMode 
-                      ? 'text-blue-400 hover:bg-gray-800/50' 
-                      : 'text-blue-600 hover:bg-gray-50'
-                  }`}>
-                    <svg className="w-5 h-5 transform transition-transform group-open:rotate-90" 
-                         viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
-                    </svg>
-                    <span className="font-medium">View AI's Thought Process</span>
-                  </summary>
-                  
-                  <div className={`mt-3 p-4 rounded-xl ${
-                    darkMode 
-                      ? 'bg-gray-800/50 border border-gray-700' 
-                      : 'bg-gray-50 border border-gray-200'
-                  }`}>
-                    <ul className="space-y-3">
-                      {parsed.thoughts.map((thought, index) => (
-                        <li key={index} className={`flex items-start gap-3 p-2 rounded-lg transition-colors ${
-                          darkMode 
-                            ? 'hover:bg-gray-800' 
-                            : 'hover:bg-white'
-                        }`}>
-                          <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-sm ${
-                            darkMode 
-                              ? 'bg-blue-900/50 text-blue-400' 
-                              : 'bg-blue-100 text-blue-600'
-                          }`}>
-                            {index + 1}
-                          </span>
-                          <span className={`text-sm ${
-                            darkMode ? 'text-gray-300' : 'text-gray-600'
-                          }`}>
-                            {thought}
-                          </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-                </details>
-              </div>
-            );
-          }
-          
-          // Enhanced UI for arrays
-          if (Array.isArray(parsed)) {
-            return (
-              <div className={`p-4 rounded-xl border ${
-                darkMode 
-                  ? 'bg-gray-800/50 border-gray-700' 
-                  : 'bg-gray-50 border-gray-200'
-              }`}>
-                <ul className="space-y-2">
-                  {parsed.map((item, index) => (
-                    <li key={index} className={`flex items-start gap-3 p-2 rounded-lg ${
+                {Array.isArray(parsed.thoughts) && parsed.thoughts.length > 0 && (
+                  <details className="group">
+                    <summary className={`flex items-center gap-3 cursor-pointer p-3 rounded-lg transition-colors ${
                       darkMode 
-                        ? 'hover:bg-gray-800/50 text-gray-300' 
-                        : 'hover:bg-white text-gray-600'
+                        ? 'text-blue-400 hover:bg-gray-800/50' 
+                        : 'text-blue-600 hover:bg-gray-50'
                     }`}>
-                      <span className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs ${
-                        darkMode 
-                          ? 'bg-gray-700 text-gray-300' 
-                          : 'bg-gray-200 text-gray-600'
-                      }`}>
-                        {index + 1}
-                      </span>
-                      <span className="text-sm">
-                        {typeof item === 'string' ? item : JSON.stringify(item)}
-                      </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                      <svg className="w-5 h-5 transform transition-transform group-open:rotate-90" 
+                           viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+                      </svg>
+                      <span className="font-medium">View AI's Thought Process</span>
+                    </summary>
+                    
+                    <div className={`mt-3 p-4 rounded-xl ${
+                      darkMode 
+                        ? 'bg-gray-800/50 border border-gray-700' 
+                        : 'bg-gray-50 border border-gray-200'
+                    }`}>
+                      <ul className="space-y-3">
+                        {parsed.thoughts.map((thought, index) => (
+                          <li key={index} className={`flex items-start gap-3 p-2 rounded-lg ${
+                            darkMode 
+                              ? 'hover:bg-gray-800/50' 
+                              : 'hover:bg-gray-50'
+                          }`}>
+                            <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-sm ${
+                              darkMode 
+                                ? 'bg-blue-900/50 text-blue-400' 
+                                : 'bg-blue-100 text-blue-600'
+                            }`}>
+                              {index + 1}
+                            </span>
+                            <span className={`text-sm ${
+                              darkMode ? 'text-gray-300' : 'text-gray-600'
+                            }`}>
+                              {thought}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </details>
+                )}
+              </div>
             );
           }
           
-          // Enhanced UI for JSON objects
+          // For any other valid JSON that doesn't match our specific format
           return (
-            <div className={`rounded-xl overflow-hidden ${
-              darkMode ? 'bg-gray-800' : 'bg-gray-50'
-            } border ${
-              darkMode ? 'border-gray-700' : 'border-gray-200'
-            }`}>
-              <div className={`px-4 py-2 border-b ${
-                darkMode ? 'border-gray-700 bg-gray-800/80' : 'border-gray-200 bg-gray-100/80'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${
-                    darkMode ? 'bg-gray-600' : 'bg-gray-400'
-                  }`}></div>
-                  <div className={`w-3 h-3 rounded-full ${
-                    darkMode ? 'bg-gray-600' : 'bg-gray-400'
-                  }`}></div>
-                  <div className={`w-3 h-3 rounded-full ${
-                    darkMode ? 'bg-gray-600' : 'bg-gray-400'
-                  }`}></div>
-                </div>
+            <div className={`rounded-xl p-6 ${
+              darkMode 
+                ? 'bg-gray-800 border border-gray-700' 
+                : 'bg-white border border-gray-200'
+            } shadow-lg`}>
+              <div className={`prose ${darkMode ? 'prose-invert' : ''} max-w-none text-white`}>
+                <pre className={`language-json rounded p-4 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+                  <code>{JSON.stringify(parsed, null, 2)}</code>
+                </pre>
               </div>
-              <pre className={`p-4 text-sm overflow-x-auto ${
-                darkMode ? 'text-gray-300' : 'text-gray-800'
-              }`}>
-                {JSON.stringify(parsed, null, 2)}
-              </pre>
             </div>
           );
+        } catch (directJsonError) {
+          // Not direct JSON, check for code blocks
+          if (content.includes('```json')) {
+            // Extract JSON content between the backticks
+            const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/);
+            if (jsonMatch && jsonMatch[1]) {
+              const jsonContent = jsonMatch[1].trim();
+              
+              try {
+                const parsed = JSON.parse(jsonContent);
+                
+                if (parsed.thoughts && parsed.tool_args) {
+                  // Same rendering as above for our specific format
+                  return (
+                    <div className="space-y-4">
+                      {/* Tool Output Section */}
+                      {parsed.tool_args.text && (
+                        <div className={`rounded-xl p-6 ${
+                          darkMode 
+                            ? 'bg-gray-800 border border-gray-700' 
+                            : 'bg-white border border-gray-200'
+                        } shadow-lg`}>
+                          <div className={`prose ${darkMode ? 'prose-invert' : ''} max-w-none text-white`}>
+                            <ReactMarkdown>{parsed.tool_args.text}</ReactMarkdown>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Thoughts Section */}
+                      {Array.isArray(parsed.thoughts) && parsed.thoughts.length > 0 && (
+                        <details className="group">
+                          <summary className={`flex items-center gap-3 cursor-pointer p-3 rounded-lg transition-colors ${
+                            darkMode 
+                              ? 'text-blue-400 hover:bg-gray-800/50' 
+                              : 'text-blue-600 hover:bg-gray-50'
+                          }`}>
+                            <svg className="w-5 h-5 transform transition-transform group-open:rotate-90" 
+                                 viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+                            </svg>
+                            <span className="font-medium">View AI's Thought Process</span>
+                          </summary>
+                          
+                          <div className={`mt-3 p-4 rounded-xl ${
+                            darkMode 
+                              ? 'bg-gray-800/50 border border-gray-700' 
+                              : 'bg-gray-50 border border-gray-200'
+                          }`}>
+                            <ul className="space-y-3">
+                              {parsed.thoughts.map((thought, index) => (
+                                <li key={index} className={`flex items-start gap-3 p-2 rounded-lg ${
+                                  darkMode 
+                                    ? 'hover:bg-gray-800/50' 
+                                    : 'hover:bg-gray-50'
+                                }`}>
+                                  <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-sm ${
+                                    darkMode 
+                                      ? 'bg-blue-900/50 text-blue-400' 
+                                      : 'bg-blue-100 text-blue-600'
+                                  }`}>
+                                    {index + 1}
+                                  </span>
+                                  <span className={`text-sm ${
+                                    darkMode ? 'text-gray-300' : 'text-gray-600'
+                                  }`}>
+                                    {thought}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  );
+                }
+                
+                // For any other valid JSON in code blocks
+                const contentWithFormattedJson = content.replace(
+                  /```json\n([\s\S]*?)\n```/g, 
+                  (match, jsonStr) => {
+                    try {
+                      const obj = JSON.parse(jsonStr.trim());
+                      return '```json\n' + JSON.stringify(obj, null, 2) + '\n```';
+                    } catch (e) {
+                      return match;
+                    }
+                  }
+                );
+                
+                return (
+                  <div className={`rounded-xl p-6 ${
+                    darkMode 
+                      ? 'bg-gray-800 border border-gray-700' 
+                      : 'bg-white border border-gray-200'
+                  } shadow-lg`}>
+                    <div className={`prose ${darkMode ? 'prose-invert' : ''} max-w-none text-white`}>
+                      <ReactMarkdown>{contentWithFormattedJson}</ReactMarkdown>
+                    </div>
+                  </div>
+                );
+              } catch (jsonError) {
+                console.error('JSON parsing error:', jsonError);
+              }
+            }
+          }
         }
         
-        // Enhanced UI for regular markdown content
+        // Fallback for non-JSON content or invalid JSON
         return (
           <div className={`rounded-xl p-6 ${
             darkMode 
               ? 'bg-gray-800 border border-gray-700' 
               : 'bg-white border border-gray-200'
           } shadow-lg`}>
-            <div className={`prose ${darkMode ? 'prose-invert' : ''} max-w-none`}>
+            <div className={`prose ${darkMode ? 'prose-invert' : ''} max-w-none text-white`}>
               <ReactMarkdown>{content}</ReactMarkdown>
             </div>
           </div>
         );
       } catch (e) {
-        // Fallback for non-JSON content
+        console.error('Content formatting error:', e);
         return (
-          <div className={`prose ${darkMode ? 'prose-invert' : ''} max-w-none`}>
+          <div className={`prose ${darkMode ? 'prose-invert' : ''} max-w-none text-white`}>
             <ReactMarkdown>{content}</ReactMarkdown>
           </div>
         );
       }
     };
-
+  
     // Enhanced message type rendering
     switch (message.type) {
       case 'agent':
+        return (
+          <div className="mb-6">
+            {message.heading && (
+              <div className={`flex items-center gap-2 mb-3 ${
+                darkMode ? 'text-blue-400' : 'text-blue-600'
+              }`}>
+                <MdOutlineSmartToy className="h-5 w-5" />
+                {/* <h3 className="font-medium">{message.heading}</h3> */}
+              </div>
+            )}
+            {formatContent(message.content)}
+          </div>
+        );
+      case 'code_exe':
+        return (
+          <div className="mb-6 text-blue-600">
+            {message.heading && (
+              <div className={`flex items-center gap-2 mb-3 ${
+                darkMode ? 'text-blue-400' : 'text-blue-600'
+              }`}>
+                <FaCode className="h-5 w-5" />
+                {/* <h3 className="font-medium">{message.heading}</h3> */}
+              </div>
+            )}
+            <div className={`rounded-lg p-4 font-mono text-sm whitespace-pre-wrap ${
+              darkMode 
+                ? 'bg-gray-800 border border-gray-700 text-gray-300' 
+                : 'bg-gray-50 border border-gray-200 text-gray-700'
+            }`}>
+              {message.content}
+            </div>
+          </div>
+        );
       case 'response':
         return (
           <div className="mb-6 text-white">
@@ -752,13 +771,12 @@ const AIAssignment = () => {
                         d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
                 <h3 className="font-medium">Generating Response</h3>
-                {/* <h3 className="font-medium">{message.heading}</h3> */}
               </div>
             )}
             {formatContent(message.content)}
           </div>
         );
-
+  
       case 'info':
         return (
           <div className="flex justify-center my-3">
@@ -775,12 +793,12 @@ const AIAssignment = () => {
             </div>
           </div>
         );
-
+  
       case 'util':
         return (
           <div className="mb-4">
             {message.heading && (
-              <div className={`flex text-white items-center gap-2 mb-3 ${
+              <div className={`flex text-red-600 items-center gap-2 mb-3 ${
                 darkMode ? 'text-gray-300' : 'text-gray-700'
               }`}>
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -807,7 +825,7 @@ const AIAssignment = () => {
             )}
           </div>
         );
-
+  
       case 'user':
         return (
           <div className="flex justify-end mb-6">
@@ -832,7 +850,7 @@ const AIAssignment = () => {
             </div>
           </div>
         );
-
+  
       default:
         return (
           <div className="mb-4">
@@ -840,7 +858,7 @@ const AIAssignment = () => {
           </div>
         );
     }
-  }, [darkMode]);
+  }, [darkMode]); 
 
   // Memoize the handleSolutionSubmit function
   const handleSolutionSubmit = useCallback(async () => {
@@ -897,7 +915,7 @@ const AIAssignment = () => {
 
   if (error) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <div className={`min-h-screen flex text-red-600 items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
         <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg max-w-md w-full`}>
           <div className="flex items-center gap-3 mb-4">
             <MdError className="h-6 w-6 text-red-500" />
@@ -1138,7 +1156,7 @@ const AIAssignment = () => {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <h4 className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'} truncate`}>
-                                    {checkpoint.title}
+                                    {convertToTitleCase(checkpoint.title)}
                                   </h4>
                                   <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'} break-words`}>
                                     {checkpoint.description}
