@@ -8,11 +8,11 @@ import { useAssignmentManager } from '../hooks/useAssignmentManager';
 const Assignments = () => {
   const { theme } = useTheme();
   const { getClient } = useAssignmentManager();
+  const navigate = useNavigate();
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedAssignments, setExpandedAssignments] = useState({});
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchAssignments();
@@ -46,43 +46,12 @@ const Assignments = () => {
     }));
   };
 
-  const formatDate = (timestamp) => {
-    return new Date(timestamp * 1000).toLocaleDateString();
+  const handleAssignmentClick = (assignment) => {
+    navigate(`/ai-assignment/${assignment.id}`, { state: { assignment } });
   };
 
-  const handleAssignmentClick = (assignment) => {
-    // Format the assignment data to match the expected structure
-    const formattedAssignment = {
-      id: assignment.id,
-      title: assignment.title,
-      description: assignment.description,
-      checkpoints: [
-        {
-          id: 1,
-          title: "Task Overview",
-          description: assignment.description
-        },
-        {
-          id: 2,
-          title: "Implementation Details",
-          description: assignment.question
-        },
-        {
-          id: 3,
-          title: "Submission Requirements",
-          description: "Submit your solution through GitHub repository"
-        }
-      ],
-      estimatedTime: "1-2 hours",
-      difficulty: "Medium",
-      question: assignment.question,
-      createdAt: assignment.createdAt,
-      creator: assignment.creator
-    };
-
-    navigate('/ai-assignment', {
-      state: { selectedAssignment: formattedAssignment }
-    });
+  const formatDate = (timestamp) => {
+    return new Date(timestamp * 1000).toLocaleDateString();
   };
 
   if (loading) {
@@ -125,7 +94,7 @@ const Assignments = () => {
           </motion.h1>
           
           <Link
-            to="/assignments/create"
+            to="/create-assignment"
             className={`flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors`}
           >
             <FaPlus className="mr-2" />
@@ -160,7 +129,10 @@ const Assignments = () => {
 
               <div className="mb-4">
                 <button
-                  onClick={() => toggleCheckpoints(index)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleCheckpoints(index);
+                  }}
                   className={`w-full flex items-center justify-between p-3 rounded-lg ${
                     theme.border
                   }`}

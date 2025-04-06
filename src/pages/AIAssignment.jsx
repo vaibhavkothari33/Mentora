@@ -7,7 +7,8 @@ import { useChat } from '../hooks/useAgent';
 import { FaSpinner, FaArrowDown, FaPaperPlane, FaGithub, FaCheck, FaTasks, FaCode, FaChevronDown } from 'react-icons/fa';
 // import { IoInformationCircle } from 'react-icons/io5';
 import { MdError, MdOutlineSmartToy } from 'react-icons/md';
-import { assignments } from '../data/assignments';
+import { useParams } from 'react-router-dom';
+import { useAssignmentManager } from '../hooks/useAssignmentManager';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -485,7 +486,7 @@ const GitHubRepoSelector = ({ onSelect, selectedRepo, darkMode, onRepoSelect }) 
                             )}
                           </div>
                           {repo.private && (
-                            <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${
+                            <span className={`text-xs px-2 py-1 roundeassignmentd-full flex-shrink-0 ${
                               darkMode 
                                 ? 'bg-yellow-900/30 text-yellow-400' 
                                 : 'bg-yellow-100 text-yellow-700'
@@ -507,11 +508,15 @@ const GitHubRepoSelector = ({ onSelect, selectedRepo, darkMode, onRepoSelect }) 
 };
 
 const AIAssignment = () => {
+  const { id } = useParams();
   const { darkMode } = useTheme();
+  const { getClient } = useAssignmentManager();
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [solution, setSolution] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const outputRef = useRef(null);
   const [selectedRepo, setSelectedRepo] = useState('');
   const [expandedCheckpoints, setExpandedCheckpoints] = useState({});
@@ -520,11 +525,39 @@ const AIAssignment = () => {
   const {
     messages,
     isConnected,
-    error,
+    error: chatError,
     logProgress,
     logProgressActive,
     sendMessage
   } = useChat();
+
+  useEffect(() => {
+    const fetchAssignment = async () => {
+      try {
+        setLoading(true);
+        const client = getClient();
+        const assignment = await client.getAssignment(parseInt(id));
+        setSelectedAssignment({
+          id,
+          checkpoints: assignment.evaluationCriteria.split('\n\n').map((check, index) => ({
+            id: index + 1,
+            title: check.split('\n')[0].replace(/Task \d+: /, ""),
+            description: check.split('\n').slice(1).join('\n'),
+          })),
+          ...assignment
+        });
+      } catch (err) {
+        console.error('Error fetching assignment:', err);
+        setError('Failed to load assignment. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchAssignment();
+    }
+  }, [id, getClient]);
 
   // Check if should show scroll button when messages change
   useEffect(() => {
@@ -874,27 +907,23 @@ const AIAssignment = () => {
 
   // Memoize the handleSolutionSubmit function
   const handleSolutionSubmit = useCallback(async () => {
-    if (!isConnected) {
-      return;
-    }
-  
+    if (!isConnected || !selectedRepo.trim()) return;
+
     setSubmitting(true);
     try {
-      // Extract GitHub repository URL from the solution text
-      const solutionText = solution.trim();
-      const githubUrlMatch = solutionText.match(/(https:\/\/github\.com\/[^\s]+)/);
+      // Extract GitHub repository URL from the selected repo
+      const repoUrl = selectedRepo.trim();
+      const githubUrlMatch = repoUrl.match(/(https:\/\/github\.com\/[^\s]+)/);
       
       if (!githubUrlMatch) {
-        throw new Error('No valid GitHub repository URL found in the solution');
+        throw new Error('No valid GitHub repository URL found');
       }
 
       const githubUrl = githubUrlMatch[1];
+      const prompt = selectedAssignment.metaPrompt.replace('{{ github_link }}', githubUrl);
       
-      // Send only the GitHub URL directly
-      await sendMessage(githubUrl);
-      
-      // Clear solution after submission
-      setSolution('');
+      // Send the prompt directly
+      await sendMessage(prompt);
     } catch (error) {
       console.error('Error:', error);
       // Show error to the user
@@ -902,7 +931,7 @@ const AIAssignment = () => {
     } finally {
       setSubmitting(false);
     }
-  }, [isConnected, sendMessage, solution]);
+  }, [isConnected, sendMessage, selectedRepo, selectedAssignment]);
 
   const toggleCheckpoints = (assignmentId) => {
     setExpandedCheckpoints(prev => ({
@@ -912,8 +941,64 @@ const AIAssignment = () => {
   };
 
   const handleRepoSelect = (repoUrlAndStructure) => {
-    setSolution(repoUrlAndStructure);
+    setSelectedRepo(repoUrlAndStructure);
   };
+
+  if (loading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <div className="flex flex-col items-center">
+          <FaSpinner className="animate-spin h-8 w-8 text-blue-500 mb-4" />
+          <p className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Loading assignment...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg max-w-md w-full`}>
+          <div className="flex items-center gap-3 mb-4">
+            <MdError className="h-6 w-6 text-red-500" />
+            <h2 className={`text-xl font-semibold ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>Error</h2>
+          </div>
+          <p className={`mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className={`w-full py-2 rounded-lg ${
+              darkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'
+            } text-white transition-colors`}
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedAssignment) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg max-w-md w-full`}>
+          <h2 className={`text-xl font-semibold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
+            Assignment Not Found
+          </h2>
+          <p className={`mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            The requested assignment could not be found.
+          </p>
+          <button
+            onClick={() => window.history.back()}
+            className={`w-full py-2 rounded-lg ${
+              darkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'
+            } text-white transition-colors`}
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
@@ -935,8 +1020,7 @@ const AIAssignment = () => {
             >
               {/* Header with Status */}
               <div className={`p-4 border-b
-                ${darkMode ? 'border-gray-700 bg-gray-800/80' : 'border-gray-200 bg-white'}`}
-              >
+                ${darkMode ? 'border-gray-700 bg-gray-800/80' : 'border-gray-200 bg-white'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${darkMode
@@ -1013,7 +1097,7 @@ const AIAssignment = () => {
                   )}
 
                   {/* Error Message */}
-                  {error && (
+                  {chatError && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -1025,7 +1109,7 @@ const AIAssignment = () => {
                     >
                       <div className="flex items-center space-x-2">
                         <MdError className="w-5 h-5 flex-shrink-0" />
-                        <span>{error}</span>
+                        <span>{chatError}</span>
                     </div>
                   </motion.div>
                 )}
@@ -1048,38 +1132,6 @@ const AIAssignment = () => {
                   </motion.button>
                 )}
               </div>
-
-              {/* Input Area */}
-              {/* <div className={`p-4 border-t ${darkMode ? 'border-gray-700 bg-gray-800/80' : 'border-gray-200 bg-white'
-                }`}>
-                <div className="flex space-x-2">
-                  <textarea
-                    value={solution}
-                    onChange={(e) => setSolution(e.target.value)}
-                    placeholder="Type your message here..."
-                    className={`flex-1 p-3 rounded-xl resize-none transition-colors h-12 min-h-[3rem] max-h-32 ${darkMode
-                        ? 'bg-gray-700 text-gray-100 placeholder-gray-400 border border-gray-600 focus:border-blue-500'
-                        : 'bg-gray-50 text-gray-900 placeholder-gray-500 border border-gray-300 focus:border-blue-500'
-                      } focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                  />
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleSolutionSubmit}
-                    disabled={!solution.trim() || submitting || !isConnected}
-                    className={`p-3 rounded-xl flex items-center justify-center transition-colors w-12 ${!solution.trim() || submitting || !isConnected
-                        ? darkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-400'
-                        : darkMode ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-blue-600 text-white hover:bg-blue-700'
-                      }`}
-                  >
-                    {submitting ? (
-                      <FaSpinner className="animate-spin h-5 w-5" />
-                    ) : (
-                      <FaPaperPlane className="h-5 w-5" />
-                    )}
-                  </motion.button>
-                </div>
-              </div> */}
             </div>
           </motion.div>
 
@@ -1097,25 +1149,6 @@ const AIAssignment = () => {
               </h2>
               
               <div className="space-y-4">
-                <select
-                  value={selectedAssignment?.id || ''}
-                  onChange={(e) => {
-                    const assignment = assignments.find(a => a.id === e.target.value);
-                    setSelectedAssignment(assignment);
-                  }}
-                  className={`w-full p-3 rounded-xl border transition-colors
-                    ${darkMode
-                      ? 'bg-gray-700 border-gray-600 text-gray-100 focus:border-blue-500'
-                      : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
-                    } focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                >
-                  <option value="">Select an assignment</option>
-                  {assignments.map(assignment => (
-                    <option key={assignment.id} value={assignment.id}>
-                      {assignment.title}
-                    </option>
-                  ))}
-                </select>
 
                 {selectedAssignment && (
                   <div className="space-y-4">
@@ -1126,18 +1159,6 @@ const AIAssignment = () => {
                       <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     {selectedAssignment.description}
                   </p>
-                      <div className="mt-2 flex items-center gap-2">
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          darkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          {selectedAssignment.estimatedTime}
-                        </span>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          darkMode ? 'bg-purple-900/30 text-purple-400' : 'bg-purple-100 text-purple-800'
-                        }`}>
-                          {selectedAssignment.difficulty}
-                    </span>
-                  </div>
                 </div>
 
                     <div>
@@ -1182,15 +1203,6 @@ const AIAssignment = () => {
                                   <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'} break-words`}>
                                     {checkpoint.description}
                                   </p>
-                                  {checkpoint.command && (
-                                    <div className={`mt-2 p-2 rounded-md text-xs font-mono ${
-                                      darkMode 
-                                        ? 'bg-gray-900 text-gray-300' 
-                                        : 'bg-gray-100 text-gray-700'
-                                    } break-words whitespace-pre-wrap overflow-x-auto`}>
-                                      {checkpoint.command}
-                </div>
-              )}
                                 </div>
                               </div>
                             </div>
@@ -1203,31 +1215,34 @@ const AIAssignment = () => {
               </div>
             </div>
 
-            {/* Solution Editor Card */}
+            {/* GitHub Repo Structure Card */}
             <div className={`rounded-xl p-6 shadow-lg border
               ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
               <h2 className={`text-xl font-bold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
                 Your Solution
               </h2>
               <div className="space-y-4">
-                <textarea
-                  value={solution}
-                  onChange={(e) => setSolution(e.target.value)}
-                  placeholder="Write your solution here..."
-                  className={`w-full h-48 p-4 rounded-xl resize-none transition-colors 
-                    ${darkMode
-                      ? 'bg-gray-700 text-gray-100 placeholder-gray-400 border border-gray-600'
-                      : 'bg-gray-50 text-gray-900 placeholder-gray-500 border border-gray-200'
-                    } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                />
+                {selectedRepo ? (
+                  <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                    <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'} break-words`}>
+                      {selectedRepo}
+                    </p>
+                  </div>
+                ) : (
+                  <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} text-center`}>
+                    <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Select a GitHub repository to submit
+                    </p>
+                  </div>
+                )}
 
                 {/* Submit Button */}
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleSolutionSubmit}
-                  disabled={!solution.trim() || submitting || !isConnected}
-                  className={`w-full py-3 rounded-xl transition-colors flex items-center justify-center space-x-2 ${submitting || !isConnected || !solution.trim()
+                  disabled={!selectedRepo.trim() || submitting || !isConnected}
+                  className={`w-full py-3 rounded-xl transition-colors flex items-center justify-center space-x-2 ${submitting || !isConnected || !selectedRepo.trim()
                       ? darkMode ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : darkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'
                     } shadow-md`}
@@ -1251,7 +1266,7 @@ const AIAssignment = () => {
                 </motion.button>
               </div>
             </div>
-                  </motion.div>
+          </motion.div>
         </div>
       </div>
     </div>

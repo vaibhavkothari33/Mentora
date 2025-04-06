@@ -34,7 +34,7 @@ function App() {
             <Route path="faq" element={<FAQ/>} />
             <Route path="create-course" element={<CreateCourse />} />
             <Route path="about" element={<About />} />
-            <Route path="ai-assignment" element={<AIAssignment />} />
+            <Route path="ai-assignment/:id" element={<AIAssignment />} />
             <Route path="assignments" element={<Assignments />} />
             <Route path="create-assignment" element={<CreateAssignment />} />
             <Route path="contact" element={<Contact />} />
