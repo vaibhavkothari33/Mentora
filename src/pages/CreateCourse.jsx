@@ -174,7 +174,7 @@ const CreateCourse = () => {
       };
 
       // Upload course content to IPFS
-      const contentURI = await ipfsService.uploadJSON(courseContent);
+      const contentIpfsHash = await ipfsService.uploadJSON(courseContent);
       setUploadProgress(90);
 
       // Create course on blockchain
@@ -185,10 +185,11 @@ const CreateCourse = () => {
         formData.description,
         formData.category,
         thumbnailIpfsHash,
-        introVideoIpfsHash,
+        contentIpfsHash,
         formData.difficulty,
         formData.duration,
-        formData.price
+        formData.price,
+        formData.modules.length
       );
       
       setUploadProgress(100);
@@ -227,7 +228,7 @@ const CreateCourse = () => {
                   name="title"
                   value={formData.title}
                   onChange={handleInputChange}
-                  className={`w-full rounded-md border p-2 text-black`}
+                  className={`w-full rounded-md border p-2 bg-gray-800 text-white`}
                   required
                 />
               </div>
@@ -241,7 +242,7 @@ const CreateCourse = () => {
                   name="price"
                   value={formData.price}
                   onChange={handleInputChange}
-                  className={`w-full rounded-md border p-2 text-black`}
+                  className={`w-full rounded-md border p-2 bg-gray-800 text-white`}
                   step="0.01"
                   min="0"
                   required
@@ -256,7 +257,7 @@ const CreateCourse = () => {
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
-                  className={`w-full rounded-md border p-2 text-black`}
+                  className={`w-full rounded-md border p-2 bg-gray-800 text-white`}
                   rows="4"
                   required
                 />
@@ -270,7 +271,7 @@ const CreateCourse = () => {
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
-                  className={`w-full rounded-md border p-2 text-black`}
+                  className={`w-full rounded-md border p-2 bg-gray-800 text-white`}
                   required
                 >
                   <option value="">Select a category</option>
@@ -290,7 +291,7 @@ const CreateCourse = () => {
                   name="difficulty"
                   value={formData.difficulty}
                   onChange={handleInputChange}
-                  className={`w-full rounded-md border p-2 text-black`}
+                  className={`w-full rounded-md border p-2 bg-gray-800 text-white`}
                   required
                 >
                   <option value={1}>Beginner</option>
@@ -308,7 +309,7 @@ const CreateCourse = () => {
                   name="duration"
                   value={formData.duration}
                   onChange={handleInputChange}
-                  className={`w-full rounded-md border p-2 text-black`}
+                  className={`w-full rounded-md border p-2 bg-gray-800 text-white`}
                   min="0"
                   required
                 />
@@ -450,7 +451,7 @@ const CreateCourse = () => {
                         type="text"
                         value={module.title}
                         onChange={(e) => handleModuleChange(index, 'title', e.target.value)}
-                        className={`w-full rounded-md border p-2 text-black`}
+                        className={`w-full rounded-md border p-2 bg-gray-800 text-white`}
                         required
                       />
                     </div>
