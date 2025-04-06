@@ -226,56 +226,6 @@ flowchart TB
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👥 Team
-
-- [Your Name] - Lead Developer
-- [Team Member] - UI/UX Designer
-- [Team Member] - Smart Contract Developer
-- [Team Member] - AI Integration Specialist
-
-## 🙏 Acknowledgments
-
-- [Framer Motion](https://www.framer.com/motion/) for animations
-- [TailwindCSS](https://tailwindcss.com/) for styling
-- [React Icons](https://react-icons.github.io/react-icons/) for icons
-- [Ethers.js](https://docs.ethers.io/) for Web3 integration
-
-## 📞 Contact
-
-- Website: [mentora.com](https://mentora.com)
-- Email: support@mentora.com
-- Twitter: [@mentora](https://twitter.com/mentora)
-- Discord: [Mentora Community](https://discord.gg/mentora)
-
-## 🚀 Roadmap
-
-- [ ] Mobile app development
-- [ ] Advanced AI features
-- [ ] Community forums
-- [ ] Live tutoring sessions
-- [ ] Expanded course categories
-- [ ] Enhanced analytics
-
-
-## 🛠 Tech Stack
-
-- **Frontend**: React.js with Vite
-- **Styling**: Tailwind CSS
-- **Blockchain**: Solidity Smart Contracts
-- **Web3**: ethers.js, Web3-Storage, IPFS
-- **Authentication**: Metamask Wallet Connection
-
-## 👋 Prerequisites
-
-Before you begin, ensure you have the following installed:
-- Node.js (v14.0.0 or later)
-- npm or yarn
-- MetaMask browser extension
-- Git
 
 ## 🚀 Getting Started
 
@@ -288,16 +238,20 @@ cd Mentora
 2. **Install dependencies**
 ```bash
 npm install
-# or
-yarn install
 ```
 
 3. **Set up environment variables**
 Create a `.env` file in the root directory:
 ```env
+VITE_GEMINI_API_KEY=gemini_api_key
 VITE_CONTRACT_ADDRESS=your_contract_address
-VITE_INFURA_ID=your_infura_id
-VITE_CHAIN_ID=your_chain_id
+VITE_INFURA_API_KEY=infura_api_key
+VITE_INFURA_API_SECRET=infura_api_secret
+VITE_API_URL=api_url
+VITE_IPFS_SERVER=your_ipfs_server
+VITE_GITHUB_CLIENT_ID=client_id
+VITE_GITHUB_CLIENT_SECRET=client_secret
+VITE_GITHUB_REDIRECT_URI=github_redirect_url
 ```
 
 4. **Start the development server**
@@ -417,13 +371,6 @@ npx hardhat run scripts/deploy.js
 npx hardhat node
 ```
 
-## 🎮 Usage
-
-1. Connect your MetaMask wallet
-2. Browse available courses
-3. Create courses of you own
-4. GitHub integration
-5. Use AI Roadmap generator to generate roadmaps
 
 ## 👥 Team
 
@@ -435,12 +382,23 @@ npx hardhat node
 
 ## 🙏 Acknowledgments
 
-- Langflow for AI 
+- [Framer Motion](https://www.framer.com/motion/) for animations
+- [TailwindCSS](https://tailwindcss.com/) for styling
+- [React Icons](https://react-icons.github.io/react-icons/) for icons
+- [Ethers.js](https://docs.ethers.io/) for Web3 integration
 
+## 📞 Contact
 
-![image](./public/image1.png)
-![image](./public/image2.png)
-![image](./public/image3.png)
-![image](./public/image4.png)
-![image](./public/image5.png)
-![image](./public/image6.png)
+- Website: [mentora.com](https://mentora.com)
+- Email: support@mentora.com
+- Twitter: [@mentora](https://twitter.com/mentora)
+- Discord: [Mentora Community](https://discord.gg/mentora)
+
+## 🚀 Roadmap
+
+- [ ] Mobile app development
+- [ ] Advanced AI features
+- [ ] Community forums
+- [ ] Live tutoring sessions
+- [ ] Expanded course categories
+- [ ] Enhanced analytics
