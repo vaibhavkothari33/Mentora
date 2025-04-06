@@ -218,7 +218,7 @@ const CourseContent = ({ course, onClose, onUpdateProgress }) => {
       id: 1,
       title: "Introduction to Blockchain",
       duration: "15:30",
-      videoUrl: "https://bafybeiajhp6f5rpiu4wvazgzq3scxilkeevdvngkrhny42x3oo7hrs6hbq.ipfs.w3s.link/VID-20250221-WA0059.mp4",
+      videoUrl: "https://bafybeici6bd5egsbfcpwb3pnwznfpaunr2cs3tugshlkvgwhycckuvs2wa.ipfs.w3s.link/What%20is%20Blockchain.mp4",
       description: "Learn the fundamental concepts of blockchain technology and its applications.",
       objectives: [
         "Understand blockchain basics",
@@ -226,7 +226,7 @@ const CourseContent = ({ course, onClose, onUpdateProgress }) => {
         "Explore blockchain use cases"
       ],
       resources: [
-        { type: 'pdf', name: 'Blockchain Basics Guide', url: '#' },
+        { type: 'pdf', name: 'Blockchain Basics Guide', url: 'https://bafybeihubwvljhf4nsfqeape7d62ka27d5hpajpjj2wnloazpsi67rsdeu.ipfs.w3s.link/Smart%20Contract.mp4' },
         { type: 'link', name: 'Additional Reading', url: '#' }
       ],
       isLocked: false
@@ -235,21 +235,21 @@ const CourseContent = ({ course, onClose, onUpdateProgress }) => {
       id: 2,
       title: "Cryptography Basics",
       duration: "20:45",
-      videoUrl: "https://example.com/video2.mp4",
+      videoUrl: "https://bafybeihubwvljhf4nsfqeape7d62ka27d5hpajpjj2wnloazpsi67rsdeu.ipfs.w3s.link/Smart%20Contract.mp4",
       isLocked: course.progress < 25
     },
     {
       id: 3,
       title: "Consensus Mechanisms",
       duration: "18:20",
-      videoUrl: "https://example.com/video3.mp4",
+      videoUrl: "https://bafybeih2s6sohmlaoeji6v46ulacoxd57qpxl2plrrba4frog3wl2sufgi.ipfs.w3s.link/DeFi.mp4",
       isLocked: course.progress < 50
     },
     {
       id: 4,
       title: "Smart Contracts",
       duration: "25:15",
-      videoUrl: "https://example.com/video4.mp4",
+      videoUrl: "https://bafybeih2s6sohmlaoeji6v46ulacoxd57qpxl2plrrba4frog3wl2sufgi.ipfs.w3s.link/DeFi.mp4",
       isLocked: course.progress < 75
     }
   ];
