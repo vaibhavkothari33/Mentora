@@ -103,15 +103,15 @@ const CreateCourse = () => {
       let cid;
       if (type === 'thumbnail') {
         cid = await ipfsService.uploadImage(file, (progress) => {
-          setUploadProgress(progress);
+          setUploadProgress(Math.round(progress));
         });
       } else if (type === 'video') {
         cid = await ipfsService.uploadVideo(file, (progress) => {
-          setUploadProgress(progress);
+          setUploadProgress(Math.round(progress));
         });
       } else if (type === 'material') {
         cid = await ipfsService.uploadFile(file, (progress) => {
-          setUploadProgress(progress);
+          setUploadProgress(Math.round(progress));
         });
       }
       return cid;
@@ -125,6 +125,7 @@ const CreateCourse = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setUploadProgress(0);
 
     try {
       // Validate form data
@@ -544,13 +545,13 @@ const CreateCourse = () => {
           </div>
 
           {/* Upload Progress */}
-          {uploadProgress > 0 && uploadProgress < 100 && (
+          {loading && uploadProgress > 0 && (
             <div className="mt-4">
               <div className="flex justify-between mb-1">
                 <span className="text-sm">Upload Progress</span>
-                <span className="text-sm">{Math.round(uploadProgress)}%</span>
+                <span className="text-sm">{uploadProgress}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
                 <div
                   className="bg-blue-600 h-2.5 rounded-full"
                   style={{ width: `${uploadProgress}%` }}
