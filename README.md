@@ -6,7 +6,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[View Demo](https://blockbinge.vercel.app/) | [Smart Contracts](https://github.com/AbhigyaKrishna/block-binge-contracts) | [Frontend Code](https://github.com/vaibhavkothari33/BlockBinge)
+[View Demo](https://blockbinge.vercel.app/) | [Smart Contracts](https://github.com/AbhigyaKrishna/mentora-contracts) | [Frontend Code](https://github.com/vaibhavkothari33/Mentora)
 
 </div>
 
@@ -360,8 +360,8 @@ Directory structure:
 ## 🔒 Smart Contracts
 
 The platform uses the following main smart contracts:
-- `StreamingPlatform.sol`: Handles video streaming and payments
-- `NFTMarketplace.sol`: Manages NFT trading functionality
+- `Mentora.sol`: Handles the buying and selling of courses
+- `AssignmentManager.sol`: Manages assignment data
 
 
 ### Contract Deployment
@@ -384,8 +384,8 @@ npx hardhat node
 - Vaibhav Kothari - Full Stack Developer
 - Abhigya Krishna - Blockchain Developer
 - Navya Rathore - AI Developer
-- Shreya Tripathi - qwerty
-- Ashika Shrivastava - qwerty
+- Shreya Tripathi - Frontend Developer
+- Ashika Shrivastava - Extras
 
 ## 🙏 Acknowledgments
 
