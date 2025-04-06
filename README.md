@@ -397,8 +397,13 @@ npx hardhat node
 ## 🚀 Roadmap
 
 🔸 Mobile app development
+
 🔸Advanced AI features
+
 🔸Community forums
+
 🔸Live tutoring sessions
+
 🔸Expanded course categories
+
 🔸Enhanced analytics
