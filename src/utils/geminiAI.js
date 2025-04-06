@@ -7,6 +7,21 @@ export async function generateAssignment(topic, difficulty) {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
+    // Validate topic
+    const validationPrompt = `Determine if the following topic is related to technical programming or development.
+    Topic: "${topic}"
+    Respond with a JSON object containing:
+    - "isTechnical": boolean
+    - "isAppropriate": boolean
+    - "reason": string explaining why if either check fails`;
+
+    const validationResult = await model.generateContent(validationPrompt);
+    const validationResponse = JSON.parse(validationResult.response.text());
+
+    if (!validationResponse.isAppropriate || !validationResponse.isTechnical) {
+      throw new Error(validationResponse.reason || "Please provide a valid technical programming topic");
+    }
+
     const prompt = `Create a blockchain/web3 programming assignment with the following criteria:
     Topic: ${topic}
     Difficulty: ${difficulty}
@@ -28,8 +43,12 @@ export async function generateAssignment(topic, difficulty) {
     const cleanedText = text.replace(/```json|```/g, '').trim();
     return JSON.parse(cleanedText);
   } catch (error) {
+    if (error.message.includes("Please provide a valid technical")) {
+      // Pass through our custom error messages
+      throw error;
+    }
     console.error('Error generating assignment:', error);
-    throw new Error('Failed to generate assignment');
+    throw new Error('Failed to generate assignment. Please ensure your topic is related to programming or development.');
   }
 }
 
@@ -75,7 +94,30 @@ export async function generateProblemBreakdown(prompt) {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-    const systemPrompt = `Break down this project requirement into clear, manageable steps. Format the response as JSON with the following structure:
+    // First, validate if the prompt is technical and appropriate
+    const validationPrompt = `Determine if the following query is related to technical programming, development, or learning. 
+    Respond with a JSON object containing:
+    - "isTechnical": boolean (true if related to programming/development)
+    - "isAppropriate": boolean (false if contains inappropriate/NSFW content)
+    - "reason": string explaining why if either check fails
+    
+    Query: "${prompt}"`;
+
+    const validationResult = await model.generateContent(validationPrompt);
+    const validationResponse = JSON.parse(validationResult.response.text());
+
+    if (!validationResponse.isAppropriate) {
+      throw new Error("Inappropriate content detected. Please keep queries professional and work-appropriate.");
+    }
+
+    if (!validationResponse.isTechnical) {
+      throw new Error("Please provide a technical programming or development related query. For example: 'How to build a React component' or 'Implementing smart contracts'");
+    }
+
+    // If validation passes, proceed with the breakdown
+    const systemPrompt = `Break down this technical project requirement into clear, manageable steps. 
+    Only provide response if it's related to programming, development, or technical learning.
+    Format the response as JSON with the following structure:
     {
       "steps": [
         {
@@ -92,9 +134,21 @@ export async function generateProblemBreakdown(prompt) {
     const response = await result.response;
     const text = response.text();
     
+    // Additional safety check for the response
+    if (text.toLowerCase().includes("nsfw") || 
+        text.toLowerCase().includes("inappropriate") ||
+        text.toLowerCase().includes("adult content")) {
+      throw new Error("Invalid or inappropriate request. Please keep queries technical and professional.");
+    }
+    
     return JSON.parse(text);
   } catch (error) {
+    if (error.message.includes("Invalid or inappropriate") || 
+        error.message.includes("Please provide a technical")) {
+      // Pass through our custom error messages
+      throw error;
+    }
     console.error('Error generating problem breakdown:', error);
-    throw new Error('Failed to generate problem breakdown');
+    throw new Error('Failed to generate problem breakdown. Please ensure your query is related to technical topics.');
   }
 }

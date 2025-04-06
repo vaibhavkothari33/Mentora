@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaPlus, FaSpinner, FaCheck, FaTasks, FaCode, FaChevronDown } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
@@ -12,6 +12,7 @@ const Assignments = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedAssignments, setExpandedAssignments] = useState({});
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchAssignments();
@@ -47,6 +48,41 @@ const Assignments = () => {
 
   const formatDate = (timestamp) => {
     return new Date(timestamp * 1000).toLocaleDateString();
+  };
+
+  const handleAssignmentClick = (assignment) => {
+    // Format the assignment data to match the expected structure
+    const formattedAssignment = {
+      id: assignment.id,
+      title: assignment.title,
+      description: assignment.description,
+      checkpoints: [
+        {
+          id: 1,
+          title: "Task Overview",
+          description: assignment.description
+        },
+        {
+          id: 2,
+          title: "Implementation Details",
+          description: assignment.question
+        },
+        {
+          id: 3,
+          title: "Submission Requirements",
+          description: "Submit your solution through GitHub repository"
+        }
+      ],
+      estimatedTime: "1-2 hours",
+      difficulty: "Medium",
+      question: assignment.question,
+      createdAt: assignment.createdAt,
+      creator: assignment.creator
+    };
+
+    navigate('/ai-assignment', {
+      state: { selectedAssignment: formattedAssignment }
+    });
   };
 
   if (loading) {
@@ -104,7 +140,8 @@ const Assignments = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className={`${theme.card} rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow`}
+              onClick={() => handleAssignmentClick(assignment)}
+              className={`${theme.card} rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow cursor-pointer transform hover:scale-105 transition-transform duration-200`}
             >
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">{assignment.title}</h2>
