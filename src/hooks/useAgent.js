@@ -131,18 +131,18 @@ export const useChat = () => {
         }));
         
         setMessages(prevMessages => [...prevMessages, ...newMessages]);
-        
-        // Update progress
-        setLogProgress(data.log_progress || 0);
-        setLogProgressActive(data.log_progress_active || false);
-        
-        // Update connection status
-        setIsConnected(true);
-        
-        // Update log version and guid
-        setLastLogVersion(data.log_version);
-        setLastLogGuid(data.log_guid);
       }
+
+      // Update progress
+      setLogProgress(data.log_progress || 0);
+      setLogProgressActive(data.log_progress_active || false);
+
+      // Update connection status
+      setIsConnected(true);
+
+      // Update log version and guid
+      setLastLogVersion(data.log_version);
+      setLastLogGuid(data.log_guid);
       
       return updated;
     } catch (err) {

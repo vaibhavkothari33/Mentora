@@ -448,7 +448,7 @@ const Courses = () => {
       const courseCount = await client.getCourseCount();
       
       const fetchedCourses = [];
-      for (let i = 0; i < courseCount; i++) {
+      for (let i = 1; i <= courseCount; i++) {
         try {
           const courseInfo = await client.getCourseInfo(i);
           const courseStats = await client.getCourseStats(i);

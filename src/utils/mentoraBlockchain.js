@@ -131,10 +131,7 @@ class MentoraClient {
   async purchaseCourse(courseId, price) {
     const priceWei = this.web3.utils.toWei(price.toString(), 'ether');
     const tx = this.contract.methods.purchaseCourse(courseId);
-    return this._sendTransaction(tx, {
-      from: this.web3.eth.defaultAccount,
-      value: priceWei 
-    });
+    return this._sendTransaction(tx, { value: priceWei });
   }
   
   async requestRefund(courseId) {
