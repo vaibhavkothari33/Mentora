@@ -879,12 +879,26 @@ const AIAssignment = () => {
                 <h4 className="font-medium text-sm">{message.heading}</h4>
               </div>
             )}
-            {formatContent(message.content)}
-        </div>
-      );
+            {message.content && message.content.includes('github.com') ? (
+              <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                <a 
+                  href={message.content.match(/(https:\/\/github\.com\/[^\s]+)/)?.[0]} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className={`flex items-center gap-2 ${darkMode ? 'text-blue-400' : 'text-blue-600'} hover:underline`}
+                >
+                  <FaGithub className="text-lg" />
+                  {message.content.match(/(https:\/\/github\.com\/[^\s]+)/)?.[0]}
+                </a>
+              </div>
+            ) : (
+              formatContent(message.content)
+            )}
+          </div>
+        );
 
       case 'user':
-    return (
+        return (
           <div className="flex justify-end mb-6">
             <div className={`max-w-[80%] p-4 rounded-xl shadow-lg ${
               darkMode 
