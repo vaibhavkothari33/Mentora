@@ -6,7 +6,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[View Demo](https://blockbinge.vercel.app/) | [Smart Contracts](https://github.com/AbhigyaKrishna/mentora-contracts) | [Frontend Code](https://github.com/vaibhavkothari33/Mentora)
+[View Demo](https://mentora-rho.vercel.app/) | [Smart Contracts](https://github.com/AbhigyaKrishna/mentora-contracts) | [Frontend Code](https://github.com/vaibhavkothari33/Mentora)
 
 </div>
 
@@ -67,14 +67,8 @@ Mentora addresses these challenges by providing:
 
 ## 📸 Screenshots
 
-![Dashboard](path-to-dashboard-screenshot.png)
+![Dashboard](public/firstpage.png)
 *AI-Powered Dashboard*
-
-![Course Interface](path-to-course-screenshot.png)
-*Interactive Learning Interface*
-
-![NFT Certificates](path-to-certificates-screenshot.png)
-*Blockchain-Verified Certificates*
 
 ## 🏗️ Architecture
 ```mermaid
