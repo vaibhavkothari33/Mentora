@@ -60,7 +60,7 @@ const CourseModal = ({ isOpen, setIsOpen, course, theme }) => {
                 <div className="mt-6">
                   <Dialog.Title
                     as="h3"
-                    className="text-2xl font-bold leading-tight mb-2"
+                    className="text-2xl text-white font-bold leading-tight mb-2"
                   >
                     {course.title}
                   </Dialog.Title>
@@ -76,7 +76,7 @@ const CourseModal = ({ isOpen, setIsOpen, course, theme }) => {
                        'Advanced'} Level
                     </span>
                     <span className={`${theme.text.secondary}`}>•</span>
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center text-white gap-1">
                       <FaClock className="text-blue-500" />
                       {course.duration} hours
                     </span>
@@ -93,8 +93,8 @@ const CourseModal = ({ isOpen, setIsOpen, course, theme }) => {
                           <FaUsers className="text-blue-500 text-xl" />
                         </div>
                         <div>
-                          <div className="text-sm font-medium">Students</div>
-                          <div className="text-2xl font-bold">{course.enrolledUsers}</div>
+                          <div className="text-sm text-white font-medium">Students</div>
+                          <div className="text-2xl text-white font-bold">{course.enrolledUsers}</div>
                         </div>
                       </div>
                     </div>
@@ -104,15 +104,15 @@ const CourseModal = ({ isOpen, setIsOpen, course, theme }) => {
                           <FaStar className="text-yellow-500 text-xl" />
                         </div>
                         <div>
-                          <div className="text-sm font-medium">Rating</div>
-                          <div className="text-2xl font-bold">{course.rating || '4.5'}</div>
+                          <div className="text-sm text-white font-medium">Rating</div>
+                          <div className="text-2xl text-white font-bold">{course.rating || '4.5'}</div>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-4 mb-6">
-                    <h4 className="text-lg font-semibold">What you'll learn:</h4>
+                    {/* <h4 className="text-lg font-semibold">What you'll learn:</h4> */}
                     <ul className="grid grid-cols-2 gap-3">
                       {course.content?.learningObjectives?.slice(0, 6).map((objective, index) => (
                         <li key={index} className="flex items-start gap-2">
@@ -127,7 +127,7 @@ const CourseModal = ({ isOpen, setIsOpen, course, theme }) => {
                     <div className="flex items-center gap-4">
                       <FaEthereum className="text-2xl text-blue-500" />
                       <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                        {parseFloat(course.price).toFixed(4)} ETH
+                        {parseFloat(course.price).toFixed(4)} EDU
                       </span>
                     </div>
                     <Link
@@ -257,7 +257,7 @@ const CourseCard = ({ course, theme }) => {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  {parseFloat(course.price).toFixed(4)} ETH
+                  {parseFloat(course.price).toFixed(4)} EDU
                 </span>
               </div>
             </div>
@@ -321,7 +321,7 @@ const BuyCourseButton = ({ course }) => {
 
       // Show confirmation toast
       const confirmed = window.confirm(
-        `Are you sure you want to purchase "${course.title}" for ${course.price} ETH?`
+        `Are you sure you want to purchase "${course.title}" for ${course.price} EDU?`
       );
 
       if (!confirmed) {
@@ -404,7 +404,7 @@ const BuyCourseButton = ({ course }) => {
     return (
       <>
         <FaEthereum className="text-xl" />
-        <span>Buy Course for {parseFloat(course.price).toFixed(4)} ETH</span>
+        <span>Buy Course for {parseFloat(course.price).toFixed(4)} EDU</span>
       </>
     );
   };
@@ -578,7 +578,7 @@ const Courses = () => {
                 placeholder="Search for courses..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full px-6 text-black py-4 rounded-xl border-2 ${theme.border} ${theme.background} ${theme.text.primary} focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-lg`}
+                className={`w-full px-6 text-black py-4 rounded-xl border-2 ${theme.border} ${theme.background}  focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-lg`}
               />
               <FaFilter className="absolute right-6 top-1/2 transform -translate-y-1/2 text-black" />
             </div>
@@ -586,7 +586,7 @@ const Courses = () => {
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className={`px-6 py-4 text-black rounded-xl border-2 ${theme.border} ${theme.background} ${theme.text.primary} min-w-[200px] focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-lg`}
+              className={`px-6 py-4 text-black rounded-xl border-2 ${theme.border} ${theme.background} min-w-[200px] focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-lg`}
             >
               <option value="all">All Courses</option>
               <option value="active">Active Courses</option>

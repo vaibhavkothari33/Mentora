@@ -236,7 +236,7 @@ const CreateCourse = () => {
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Price (ETH) <span className="text-red-500">*</span>
+                  Price (EDU) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"

@@ -7,27 +7,29 @@ class AssignmentManagerClient {
     this.contractABI = assignmentManagerAbi.abi;
     this.contractAddress = contractAddress;
     this.contract = new this.web3.eth.Contract(this.contractABI, this.contractAddress);
-    
+
     if (privateKey) {
       this.account = this.web3.eth.accounts.privateKeyToAccount(privateKey);
       this.web3.eth.accounts.wallet.add(this.account);
       this.defaultAccount = this.account.address;
     }
   }
-  
+
   setDefaultAccount(account) {
     this.defaultAccount = account;
   }
 
-  async createAssignment(title, description, question, evaluationCriteria, metaPrompt) {
+  async createAssignment(title, description, question, evaluationCriteria, metaPromptIpfsHash) {
+    const criteriaArray = Array.isArray(evaluationCriteria) ? evaluationCriteria : [evaluationCriteria];
+
     const tx = this.contract.methods.createAssignment(
       title,
       description,
       question,
-      evaluationCriteria,
-      metaPrompt
+      criteriaArray,
+      metaPromptIpfsHash
     );
-    
+
     return this._sendTransaction(tx);
   }
 
@@ -37,17 +39,19 @@ class AssignmentManagerClient {
     description,
     question,
     evaluationCriteria,
-    metaPrompt
+    metaPromptIpfsHash
   ) {
+    const criteriaArray = Array.isArray(evaluationCriteria) ? evaluationCriteria : [evaluationCriteria];
+
     const tx = this.contract.methods.updateAssignment(
       assignmentId,
       title,
       description,
       question,
-      evaluationCriteria,
-      metaPrompt
+      criteriaArray,
+      metaPromptIpfsHash
     );
-    
+
     return this._sendTransaction(tx);
   }
 
@@ -63,14 +67,14 @@ class AssignmentManagerClient {
   async getAllAssignments() {
     const assignmentCount = await this.getAssignmentCount();
     const assignments = [];
-    
+
     for (let i = 0; i < assignmentCount; i++) {
       const assignment = await this.getAssignment(i);
       assignments.push(assignment);
     }
-    
+
     return assignments;
-  }    
+  }
 
   async getAssignment(assignmentId) {
     const result = await this.contract.methods.getAssignment(assignmentId).call();
@@ -94,18 +98,18 @@ class AssignmentManagerClient {
     return await this.contract.methods.getAssignmentEvaluationCriteria(assignmentId).call();
   }
 
-  async getAssignmentMetaPrompt(assignmentId) {
-    return await this.contract.methods.getAssignmentMetaPrompt(assignmentId).call();
+  async getAssignmentMetaPromptIpfsHash(assignmentId) {
+    return await this.contract.methods.getAssignmentMetaPromptIpfsHash(assignmentId).call();
   }
 
   async _sendTransaction(tx, options = {}) {
     const from = options.from || this.defaultAccount;
     if (!from) throw new Error('No from address specified');
-    
+
     const gas = options.gas || await tx.estimateGas({ from });
     const gasPrice = options.gasPrice || await this.web3.eth.getGasPrice();
     const value = options.value || '0';
-    
+
     const txParams = {
       from,
       to: this.contractAddress,
@@ -114,14 +118,14 @@ class AssignmentManagerClient {
       gasPrice,
       value
     };
-    
+
     if (this.account && from === this.account.address) {
       const signedTx = await this.web3.eth.accounts.signTransaction(txParams, this.account.privateKey);
       return this.web3.eth.sendSignedTransaction(signedTx.rawTransaction);
     }
-    
+
     return this.web3.eth.sendTransaction(txParams);
   }
 }
 
-export { AssignmentManagerClient }; 
+export { AssignmentManagerClient };

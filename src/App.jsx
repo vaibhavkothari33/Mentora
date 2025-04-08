@@ -102,8 +102,8 @@ const openCampusCodex = {
   name: 'Open Campus Codex',
   network: 'opencampuscodex',
   nativeCurrency: {
-    name: 'ETH',
-    symbol: 'ETH',
+    name: 'EDU',
+    symbol: 'EDU',
     decimals: 18
   },
   rpcUrls: {
