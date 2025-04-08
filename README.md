@@ -15,10 +15,9 @@
 Mentora is an innovative Web3 education platform that combines blockchain technology with AI-powered learning assistance to create a next-generation learning experience. Built during Hackaccino 2025, our platform aims to revolutionize how people learn and interact with Web3 technologies.
 
 ## 🔐 Contract Details
-* Mentora Contract Address: 0x032b4EcfFB926DF1611224e76812cD870fb8E0Bb 
-* AssignmentManager Contract Address: 0x24519474d5442d7c92f4684950fc13265f836f7a 
+* Course Contract Address: [0x032b4EcfFB926DF1611224e76812cD870fb8E0Bb](https://edu-chain-testnet.blockscout.com/address/0x032b4EcfFB926DF1611224e76812cD870fb8E0Bb?tab=index)
+* AssignmentManager Contract Address: [0x5EBB24Ac0b10f7fb8Be660bc68152a84cABF334a](https://edu-chain-testnet.blockscout.com/address/0x5EBB24Ac0b10f7fb8Be660bc68152a84cABF334a?tab=index)
 * Network: Edu Chain 
-* Contract Address: [View on Explorer](https://edu-chain-testnet.blockscout.com/address/0x032b4EcfFB926DF1611224e76812cD870fb8E0Bb?tab=index)
 
 ## 🌟 Problem Statement
 
