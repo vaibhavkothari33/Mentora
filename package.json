@@ -17,7 +17,9 @@
     "@headlessui/react": "^2.2.1",
     "@octokit/rest": "^21.1.1",
     "@openzeppelin/contracts": "^5.0.1",
+    "@rainbow-me/rainbowkit": "^2.2.4",
     "@reactflow/node-resizer": "^2.2.14",
+    "@tanstack/react-query": "^5.72.0",
     "@web3-react/core": "^8.2.3",
     "@web3-react/metamask": "^8.2.4",
     "@web3-storage/w3up-client": "^17.2.0",
@@ -38,7 +40,7 @@
     "react-toastify": "^11.0.5",
     "reactflow": "^11.11.4",
     "tailwindcss": "^3.4.1",
-    "viem": "^2.25.0",
+    "viem": "^2.26.2",
     "wagmi": "^2.14.16",
     "web3": "^4.16.0",
     "web3.storage": "^4.5.5"
